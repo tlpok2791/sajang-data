@@ -45,6 +45,10 @@ footer{max-width:720px;margin:0 auto;padding:0 16px 40px;font-size:12px;color:va
     <p class="note" id="areaNote"></p>
   </div>
   <div class="card"><h2 id="sTitle">점포 현황</h2><div id="sBody" class="load">지역을 고르세요</div></div>
+  <div class="card"><h2 id="mTitle">동네 매출</h2>
+    <div class="row"><select id="mInd"></select></div>
+    <div id="mBody" class="load">지역을 고르세요</div>
+  </div>
   <div class="card"><h2>월별 개업 · 폐업 (인허가)</h2>
     <div class="row"><select id="svc"></select><select id="bz"></select></div>
     <div id="lBody" class="load">지역을 고르세요</div>
@@ -206,7 +210,7 @@ async function onAdong(){pref.adong=$('#adong').value;save();if(!pref.adong)retu
   D=await data(`dong/${pref.adong}.json`);
   S=D.stores.map(x=>({bizesNm:x.n,brchNm:x.b,indsLclsNm:x.l,indsMclsNm:x.m,indsSclsNm:x.s,rdnmAdr:x.a,flrNo:x.f}));
   const l=[...new Set(S.map(x=>x.indsLclsNm))].sort();opts($('#lcls'),l.map(x=>[x,x]));
-  $('#lcls').value=l.includes(pref.lcls)?pref.lcls:(l.includes('음식')?'음식':l[0]);drawStores();loadLic();
+  $('#lcls').value=l.includes(pref.lcls)?pref.lcls:(l.includes('음식')?'음식':l[0]);drawStores();loadLic();loadSales();
 }
 $('#lcls').onchange=()=>{pref.lcls=$('#lcls').value;save();drawStores()};
 const count=(a,f)=>Object.entries(a.reduce((m,x)=>(m[f(x)]=(m[f(x)]||0)+1,m),{})).sort((a,b)=>b[1]-a[1]);
@@ -497,6 +501,36 @@ $('#bNo').oninput=checkBiz;
 $('#bGo').onclick=async()=>{const d=checkBiz();
   if(d.length===10){try{await navigator.clipboard.writeText(d);$('#bMsg').innerHTML+=' · 번호를 복사했습니다'}catch(e){$('#bMsg').innerHTML+=' · 복사가 안 되면 번호를 직접 입력하세요'}}
   window.open('https://hometax.go.kr','_blank','noopener')};
+
+/* ── 동네 매출 (서울: 상권분석서비스 추정매출·점포, 분기) ── */
+let M=null;
+async function loadSales(){
+  M=await data(`sales/${pref.adong}.json`);
+  if(!M){$('#mInd').innerHTML='';$('#mTitle').textContent='동네 매출';
+    $('#mBody').innerHTML=`<div class="warn">${pref.sido==='11'?'이 행정동은 서울시 매출 자료와 동 코드가 맞지 않습니다(최근 행정동 개편).':'서울 외 지역의 동네 매출은 준비 중입니다. 경기도 카드매출부터 차례로 추가합니다.'}</div>`;return}
+  const q=M.quarters.at(-1),ks=Object.keys(M.ind).filter(k=>M.ind[k].q[q]?.amt).sort((a,b)=>M.ind[b].q[q].amt-M.ind[a].q[q].amt);
+  opts($('#mInd'),ks.map(k=>[k,k]));if(ks.includes(pref.mInd))$('#mInd').value=pref.mInd;drawSales();
+}
+$('#mInd').onchange=()=>{pref.mInd=$('#mInd').value;save();drawSales()};
+const QL=q=>`${q.slice(2,4)}년 ${q[4]}분기`,eok=n=>n>=1e8?(n/1e8).toFixed(1)+'억':Math.round(n/1e4).toLocaleString()+'만';
+function pctBars(labels,vals){const t=vals.reduce((a,b)=>a+b,0)||1,m=Math.max(...vals,1);
+  return labels.map((l,i)=>`<div class="bar"><span class="lab">${l}</span><i style="width:${vals[i]/m*55}%"></i><span class="n">${Math.round(vals[i]/t*100)}%</span></div>`).join('')}
+function drawSales(){
+  const k=$('#mInd').value,I=M.ind[k],qs=M.quarters,q=qs.at(-1),x=I.q[q]||{},prev=I.q[qs.at(-5)]||{};
+  $('#mTitle').textContent=`${M.name} 동네 매출 (${QL(q)})`;
+  const per=x.stores?x.amt/x.stores:0,yoy=prev.amt?Math.round((x.amt/prev.amt-1)*100):null,mx=Math.max(1,...qs.map(z=>I.q[z]?.amt||0));
+  const all=Object.entries(M.ind).map(([n,v])=>[n,v.q[q]?.amt||0]).filter(a=>a[1]).sort((a,b)=>b[1]-a[1]);
+  $('#mBody').innerHTML=`<div class="kpis"><div class="kpi"><b>${eok(x.amt||0)}</b><span>${esc(k)} 분기 추정매출${yoy!=null?` (전년 대비 ${yoy>0?'+':''}${yoy}%)`:''}</span></div>
+     <div class="kpi"><b>${x.stores?eok(per):'-'}</b><span>점포 1곳당 평균 (분기, 점포 ${x.stores||'-'}곳)</span></div>
+     <div class="kpi"><b>${x.open!=null?x.open+'% / '+x.close+'%':'-'}</b><span>개업률 / 폐업률 (분기)</span></div></div>
+   <h3>분기별 매출 추이</h3><div class="chart" style="height:120px">${qs.map(z=>`<div class="m"><div class="up"><i style="height:${(I.q[z]?.amt||0)/mx*100}%"></i></div><div style="flex:none">${z.slice(2,4)}.${z[4]}Q</div></div>`).join('')}</div>
+   ${I.times?`<h3>시간대별</h3>${pctBars(['0~6시','6~11시','11~14시','14~17시','17~21시','21~24시'],I.times)}
+   <h3>요일별</h3>${pctBars(['월','화','수','목','금','토','일'],I.days)}
+   <h3>연령대별</h3>${pctBars(['10대','20대','30대','40대','50대','60대 이상'],I.ages)}
+   <h3>성별</h3>${pctBars(['남성','여성'],I.sex)}`:''}
+   <h3>이 동네 업종별 매출 순위 (${QL(q)})</h3>${bars(all.slice(0,10).map(([n,a])=>[n,Math.round(a/1e8*10)/10]))}<p class="note">단위: 억 원</p>
+   <p class="note">자료: ${esc(M.source)}. 카드 결제 등으로 추정한 매출이라 현금 매출은 빠져 있고 실제와 차이가 있습니다. 점포 수는 서울시 기준(유사업종 포함)이라 위 점포 현황과 다를 수 있습니다.</p>`;
+}
 
 initArea().then(()=>{if(qs.get('tab'))document.querySelector(`nav button[data-t="${qs.get('tab')}"]`)?.click()});
 </script></body></html>

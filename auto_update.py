@@ -91,6 +91,18 @@ def main():
             changed = True
     except Exception as e:                            # 포털 화면이 바뀌어도 인허가 수집은 계속
         log(f'상가정보 확인 실패: {e}')
+    try:                                              # 서울 추정매출: 서울시 자료 건수가 바뀌었을 때(새 분기)만 다시 받는다
+        import os
+        from dotenv import load_dotenv
+        load_dotenv(HERE.parent / 'blog-writer_mcp' / '.env')
+        cnt = requests.get(f"http://openapi.seoul.go.kr:8088/{os.environ['SEOUL_DATA_KEY']}/json/VwsmAdstrdSelngW/1/1/", timeout=60).json()['VwsmAdstrdSelngW']['list_total_count']
+        mark = HERE / 'data' / 'sales' / '_seoul_count.txt'
+        if not mark.exists() or mark.read_text().strip() != str(cnt):
+            if run('export_sales.py') == 0:
+                mark.write_text(str(cnt))
+                changed = True
+    except Exception as e:
+        log(f'서울 매출 확인 실패: {type(e).__name__}')   # 주소에 키가 있어 메시지 원문은 남기지 않는다
     before = ok_set()
     run('export.py', 'lic')
     after = ok_set()
