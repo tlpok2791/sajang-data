@@ -23,8 +23,18 @@ def git(*a, cwd=SITE):
     subprocess.run(['git', *a], cwd=cwd, check=True)
 
 
+def preflight():
+    """화면 스크립트 문법 + 세금 계산 테스트. 하나라도 실패하면 배포하지 않는다(2026-10-10 깨진 화면이 10분 공개된 뒤 추가)."""
+    syntax = "const h=require('fs').readFileSync('index.html','utf8');for(const b of h.split('<script>').slice(1))new Function(b.split('</script>')[0]);"
+    for cmd in (['node', '-e', syntax], ['node', 'tax_test.js']):
+        r = subprocess.run(cmd, cwd=HERE, capture_output=True, text=True, encoding='utf-8', errors='replace')
+        if r.returncode != 0:
+            sys.exit('배포 중단 — 검사 실패: ' + ' '.join(cmd[:2]) + '\n' + (r.stderr or r.stdout)[-600:])
+
+
 def main():
     assert (HERE / 'data' / 'meta.json').exists(), 'data/meta.json 이 없습니다. export.py 를 먼저 실행하세요.'
+    preflight()
     remote = subprocess.run(['git', 'remote', 'get-url', 'origin'], cwd=HERE, capture_output=True, text=True, check=True).stdout.strip()
     if SITE.exists():                                   # git 객체 파일은 읽기 전용이라 권한을 풀고 지운다
         shutil.rmtree(SITE, onexc=lambda f, p, e: (os.chmod(p, stat.S_IWRITE), f(p)))
