@@ -16,6 +16,7 @@ const Tax = (() => {
   }
   // [구간 상한, 구간 하한까지의 누적세액, 세율]
   const INCOME = [[14e6, 0, .06], [50e6, 84e4, .15], [88e6, 624e4, .24], [150e6, 1536e4, .35], [300e6, 3706e4, .38], [500e6, 9406e4, .40], [1e9, 17406e4, .42], [Infinity, 38406e4, .45]];
+  const GIFT = [[1e8, 0, .10], [5e8, 1e7, .20], [10e8, 9e7, .30], [30e8, 2.4e8, .40], [Infinity, 10.4e8, .50]];   // 상증법 26조
   const CORP = [[2e8, 0, .10], [200e8, 2e7, .20], [3000e8, 39.8e8, .22], [Infinity, 655.8e8, .25]];
   const CORP_SMALL_RENT = [[200e8, 0, .20], [3000e8, 40e8, .22], [Infinity, 656e8, .25]];   // 법인세법 60조의2①1 성실신고확인 대상 소규모 법인
 
@@ -99,6 +100,69 @@ const Tax = (() => {
     return { tax, local: Math.floor(tax * .1 / 10 + 1e-7) * 10 };
   }
 
-  return { VA_RATE, incomeTax, corpTax, vatGeneral, vatSimple, income, corp, insurance, withholding };
+  // ── 양도소득세 (부동산) — 소득세법 89·95·103·104조, 지방소득세 10%(지방세법 103조의3) ──
+  // kind: 'house' | 'land' | 'building'. 1세대1주택 비과세 요건 충족 여부와 다주택 중과 해당 여부는 사용자가 판단해 넣는다.
+  function transferTax({ price, cost, expense = 0, years = 0, resYears = 0, kind = 'house', oneHouse = false, heavy = 0, nonBizLand = false, basicUsed = false }) {
+    let gain = Math.max(0, price - cost - expense), exemptPart = 0;
+    if (kind === 'house' && oneHouse) {
+      if (price <= 12e8) return { gain, exempt: true, base: 0, tax: 0, local: 0, total: 0, note: '1세대1주택 12억원 이하 비과세' };
+      exemptPart = gain - Math.floor(gain * (price - 12e8) / price);        // 12억 초과분만 과세 (소득세법 95조③)
+      gain -= exemptPart;
+    }
+    let ltRate = 0;                                                         // 장기보유특별공제 (95조②)
+    if (years >= 3 && !(kind === 'house' && heavy)) {
+      if (kind === 'house' && oneHouse && resYears >= 2)                   // 표2: 보유 4%/년 + 거주 4%/년(2년 8%), 각 40% 한도
+        ltRate = Math.min(.40, .04 * Math.floor(years)) + Math.min(.40, Math.floor(resYears) === 2 ? .08 : .04 * Math.floor(resYears));
+      else ltRate = Math.min(.30, .02 * Math.floor(years));                 // 표1: 3년 6% + 1년마다 2%, 30% 한도
+    }
+    const lt = Math.floor(gain * ltRate), income = gain - lt;
+    const base = Math.max(0, income - (basicUsed ? 0 : 250e4));             // 양도소득 기본공제 연 250만원 (103조)
+    const basic = b => incomeTax(b), extra = (heavy ? heavy / 100 : 0) + (nonBizLand ? .10 : 0);
+    const prog = Math.floor(basic(base) + base * extra);                    // 기본세율(+중과 가산)
+    const short = years < 1 ? (kind === 'house' ? .70 : .50) : years < 2 ? (kind === 'house' ? .60 : .40) : 0;
+    const tax = short ? Math.max(Math.floor(base * short), extra ? prog : 0) : prog;   // 2년 미만은 단기세율(중과면 큰 것)
+    const local = Math.floor(tax * .1);
+    return { gain, exemptPart, ltRate, lt, income, base, rateNote: short ? `단기 ${short * 100}%` : `기본세율${extra ? ` +${Math.round(extra * 100)}%p` : ''}`, tax, local, total: tax + local };
+  }
+
+  // ── 증여세 — 상증법 26·53·53의2·55·57·58·69조. amount: 이번 증여, prior: 같은 증여자로부터 10년 내 증여(합산) ──
+  const GIFT_LIMIT = { spouse: 6e8, up: 5e7, upMinor: 2e7, down: 5e7, relative: 1e7, other: 0 };
+  function giftTax({ amount, relation = 'up', prior = 0, priorTax = 0, usedDeduct = 0, marriage = false, skipGen = false, minor = false }) {
+    const value = amount + prior;
+    let ded = Math.max(0, Math.min(GIFT_LIMIT[relation] - usedDeduct, value));
+    if (marriage && (relation === 'up' || relation === 'upMinor')) ded = Math.min(value, ded + 1e8);   // 혼인·출산 공제 1억
+    const base = value - ded;
+    if (base < 50e4) return { value, ded, base, tax: 0, total: 0, note: '과세표준 50만원 미만 — 과세하지 않음' };
+    const calc = Math.floor(progressive(base, GIFT));
+    const surcharge = skipGen ? Math.floor(calc * (minor && amount > 20e8 ? .40 : .30)) : 0;         // 세대생략 할증
+    const afterPrior = Math.max(0, calc + surcharge - priorTax);
+    const report = Math.floor(afterPrior * .03);                             // 신고세액공제 3%
+    return { value, ded, base, calc, surcharge, priorTax, report, tax: afterPrior - report, total: afterPrior - report };
+  }
+
+  // ── 상속세 — 상증법 18~22·24~26·69조 (단순화: 동거주택·가업·영농 공제, 공제 종합한도의 세부는 제외) ──
+  function inheritTax({ estate, debts = 0, funeral = 5e6, priorGifts = 0, priorGiftTax = 0, spouse = false, spouseGets = 0, kids = 0, minorYears = 0, elderly = 0, finNet = 0 }) {
+    const value = Math.max(0, estate - debts - Math.min(Math.max(funeral, 5e6), 15e6) + priorGifts);
+    const personal = Math.max(5e8, 2e8 + 5e7 * kids + 1e7 * minorYears + 5e7 * elderly);    // 일괄공제 5억 vs 기초+기타인적
+    const spouseShare = 1.5 / (1.5 + Math.max(kids, 0));                     // 배우자 법정상속분(자녀 수 기준 근사)
+    const spouseDed = spouse ? Math.max(5e8, Math.min(spouseGets, Math.floor((estate - debts) * spouseShare), 30e8)) : 0;
+    const fin = finNet <= 0 ? 0 : finNet <= 2e7 ? finNet : Math.min(2e8, Math.max(finNet * .2, 2e7));
+    const ded = Math.min(personal + spouseDed + fin, Math.max(0, value - priorGifts));          // 공제 종합한도(사전증여분은 공제 못 받음)
+    const base = value - ded;
+    if (base < 50e4) return { value, personal, spouseDed, fin, ded, base, tax: 0, total: 0, note: '과세표준 50만원 미만 — 과세하지 않음' };
+    const calc = Math.floor(progressive(base, GIFT));
+    const afterPrior = Math.max(0, calc - priorGiftTax);
+    const report = Math.floor(afterPrior * .03);
+    return { value, personal, spouseDed, fin, ded, base, calc, priorGiftTax, report, tax: afterPrior - report, total: afterPrior - report };
+  }
+
+  // ── 주민세 사업소분 — 지방세법 81조 (조례로 ±50% 가감 가능) ──
+  function residentBiz({ kind = '개인', capital = 0, area = 0, polluting = false }) {
+    const basic = kind === '법인' ? (capital > 50e8 ? 2e5 : capital > 30e8 ? 1e5 : 5e4) : 5e4;
+    const byArea = area > 330 ? Math.floor(area * (polluting ? 500 : 250)) : 0;                 // 연면적 330㎡ 초과 사업소만
+    return { basic, byArea, total: basic + byArea };
+  }
+
+  return { VA_RATE, incomeTax, corpTax, vatGeneral, vatSimple, income, corp, insurance, withholding, transferTax, giftTax, inheritTax, residentBiz };
 })();
 if (typeof module !== 'undefined') module.exports = Tax;

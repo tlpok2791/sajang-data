@@ -35,7 +35,7 @@ td:first-child{white-space:nowrap}.scroll{overflow-x:auto;margin:0 -4px}.grid in
 
 footer{max-width:720px;margin:0 auto;padding:0 16px 40px;font-size:12px;color:var(--sub);line-height:1.7}</style></head><body>
 <header><h1>사장님 데이터 비서</h1><p>공공데이터로 보는 우리 동네 상권 · 세금 일정 · 예상 세금 | 세정회계법인 서동희 회계사</p>
-<nav><button data-t="area" class="on">우리 동네 상권</button><button data-t="cal">세금 일정</button><button data-t="tax">예상 세금</button><button data-t="ins">급여·4대보험</button><button data-t="biz">거래처 확인</button></nav></header>
+<nav><button data-t="area" class="on">우리 동네 상권</button><button data-t="cal">세금 일정</button><button data-t="tax">예상 세금</button><button data-t="ins">세금 계산기</button><button data-t="biz">거래처 확인</button></nav></header>
 <main>
 
 <section id="area">
@@ -97,10 +97,17 @@ footer{max-width:720px;margin:0 auto;padding:0 16px 40px;font-size:12px;color:va
   <div class="card"><h2>예상 세금</h2><div id="tout"></div>
     <p class="note">2026년 세법 기준 단순 추정입니다. 감가상각, 각종 세액공제·감면, 의제매입세액 한도, 최저한세, 가산세는 반영하지 않았고, 경비는 입력한 금액이 모두 인정된다고 가정했습니다. 실제 신고 전에는 회계사 검토를 받으세요.</p>
   </div>
+  <div class="card"><h2>올해 세금 한눈에 (국세 + 지방세)</h2>
+    <div class="row" style="flex-wrap:wrap"><label class="note"><input type="checkbox" id="rbOn" style="width:auto"> 주민세 사업소분 대상 (사업소 있는 개인·법인)</label>
+      <label class="note">사업소 연면적 ㎡ (330㎡ 초과 시 과세)<input id="rbArea" inputmode="numeric" placeholder="0"></label><label class="note">법인 자본금 (만원)<input id="rbCap" inputmode="numeric" placeholder="0"></label></div>
+    <div id="allOut"></div>
+    <p class="note">'세금 계산기' 탭의 양도소득세·상속·증여세 결과는 그 화면에서 "포함"에 체크한 경우에만 더합니다. 원천세(직원 급여)는 직원이 내는 세금을 회사가 대신 떼어 내는 것이라 사업주 부담에는 넣지 않았습니다. 재산세·자동차세·취득세 등은 넣지 않았습니다.</p>
+  </div>
 </section>
 
 <section id="ins" class="hide">
-  <div class="card"><h2>급여 · 4대보험 계산기 (2026년)</h2>
+  <div class="seg" style="margin-bottom:12px"><button data-c="pay" class="on">급여·4대보험</button><button data-c="cg">양도소득세</button><button data-c="gi">상속·증여세</button></div>
+  <div class="card" id="cPay"><h2>급여 · 4대보험 계산기 (2026년)</h2>
     <p class="note">직원마다 <b>월 급여(식대 등 비과세를 뺀 금액)</b>, 공제대상 가족 수(본인 포함), 8~20세 자녀 수를 넣으세요. 4대보험, 근로소득세·지방소득세, 세후 실수령액, 사업주 부담을 한 번에 계산합니다.</p>
     <div class="scroll"><table class="grid" id="eGrid"></table></div>
     <div class="row" style="margin-top:8px"><button class="act" id="eAdd" style="background:var(--navy2)">+ 직원 추가</button></div>
@@ -108,6 +115,44 @@ footer{max-width:720px;margin:0 auto;padding:0 16px 40px;font-size:12px;color:va
       <label class="note">산재보험료율 % (근로복지공단 고지 요율)<input id="iInj" inputmode="decimal" placeholder="예: 0.9"></label></div>
     <div id="iOut"></div>
     <p class="note">근로소득세는 근로소득 간이세액표(소득세법 시행령 별표 2, 2026.2.27 개정) 100% 기준이고, 지방소득세는 그 10%입니다. 4대보험 요율: 국민연금 9.5%(각 4.75%, 기준소득월액 41만~659만 원), 건강보험 7.19%(각 3.595%), 장기요양 보수의 0.9448%(각 절반), 고용보험 1.8%(각 0.9%) + 사업주 고용안정 0.25~0.85%, 산재보험은 사업주 전액. 건강보험 보수 상·하한, 두루누리 지원, 60세 이상 국민연금 제외, 대표자 본인은 반영하지 않은 추정치입니다.</p>
+  </div>
+  <div class="card hide" id="cCg"><h2>양도소득세 계산기 (부동산, 2026년)</h2>
+    <p class="note">금액은 <b>만원 단위</b>입니다. 필요경비는 취득세·중개수수료·자본적 지출 등입니다.</p>
+    <div class="row"><label class="note">자산 종류<select id="gKind"><option value="house">주택</option><option value="land">토지</option><option value="building">상가·건물</option></select></label>
+      <label class="note">보유 연수 (년)<input id="gYears" inputmode="decimal" placeholder="예: 5"></label></div>
+    <div class="row"><label class="note">양도가액 (만원)<input id="gPrice" inputmode="numeric" placeholder="예: 50000"></label><label class="note">취득가액 (만원)<input id="gCost" inputmode="numeric" placeholder="예: 30000"></label></div>
+    <div class="row"><label class="note">필요경비 (만원)<input id="gExp" inputmode="numeric" placeholder="0"></label><label class="note">거주 연수 (1주택, 년)<input id="gRes" inputmode="decimal" placeholder="0"></label></div>
+    <div class="row" style="flex-wrap:wrap">
+      <label class="note"><input type="checkbox" id="gOne" style="width:auto"> 1세대1주택 비과세 요건 충족 (2년 이상 보유 등)</label>
+      <label class="note">다주택 중과 (조정대상지역)<select id="gHeavy"><option value="0">해당 없음</option><option value="20">2주택 +20%p</option><option value="30">3주택 이상 +30%p</option></select></label></div>
+    <div class="row" style="flex-wrap:wrap"><label class="note"><input type="checkbox" id="gNbl" style="width:auto"> 비사업용 토지 (+10%p)</label><label class="note"><input type="checkbox" id="gUsed" style="width:auto"> 올해 기본공제 250만원 이미 사용</label></div>
+    <div id="gOut"></div>
+    <p class="note">근거: 소득세법 제89조(1세대1주택 12억 원 비과세), 제95조(장기보유특별공제), 제103조(기본공제 250만 원), 제104조(세율), 지방소득세 10%. 다주택 중과는 한시 배제 여부를 양도일 기준으로 꼭 확인하세요. 분양권·입주권, 미등기, 감면은 반영하지 않았습니다.</p>
+    <label class="note"><input type="checkbox" id="gInc" style="width:auto"> 이 결과를 '예상 세금'의 올해 세금 합계에 포함</label>
+  </div>
+  <div class="card hide" id="cGi"><h2>상속 · 증여세 계산기 (2026년)</h2>
+    <div class="seg"><button data-g="gift" class="on">증여세</button><button data-g="inh">상속세</button></div>
+    <div id="giftPane">
+      <p class="note">금액은 <b>만원 단위</b>입니다. 같은 사람에게서 10년 안에 받은 증여는 합산합니다.</p>
+      <div class="row"><label class="note">증여자와의 관계<select id="fRel"><option value="up">부모·조부모 → 성인 자녀(손주)</option><option value="upMinor">부모·조부모 → 미성년 자녀(손주)</option><option value="spouse">배우자</option><option value="down">자녀 → 부모</option><option value="relative">그 밖의 친족 (4촌 혈족·3촌 인척)</option><option value="other">친족 아닌 사람</option></select></label>
+        <label class="note">이번 증여액 (만원)<input id="fAmt" inputmode="numeric" placeholder="예: 10000"></label></div>
+      <div class="row"><label class="note">10년 내 같은 증여자 증여 (만원)<input id="fPrior" inputmode="numeric" placeholder="0"></label><label class="note">그때 낸 증여세 (만원)<input id="fPriorTax" inputmode="numeric" placeholder="0"></label></div>
+      <div class="row"><label class="note">10년 내 이미 쓴 증여공제 (만원)<input id="fUsed" inputmode="numeric" placeholder="0"></label><span></span></div>
+      <div class="row" style="flex-wrap:wrap"><label class="note"><input type="checkbox" id="fMar" style="width:auto"> 혼인(전후 2년)·출산(2년 내) 공제 1억 원</label><label class="note"><input type="checkbox" id="fSkip" style="width:auto"> 조부모 → 손주 (세대생략 할증)</label></div>
+      <div id="fOut"></div>
+    </div>
+    <div id="inhPane" class="hide">
+      <p class="note">금액은 <b>만원 단위</b>입니다. 상속재산은 부동산·예금·주식 등 시가 합계입니다.</p>
+      <div class="row"><label class="note">상속재산 (만원)<input id="hEst" inputmode="numeric" placeholder="예: 150000"></label><label class="note">채무 (만원)<input id="hDebt" inputmode="numeric" placeholder="0"></label></div>
+      <div class="row"><label class="note">장례비 (만원, 500~1,500)<input id="hFun" inputmode="numeric" placeholder="500"></label><label class="note">순금융재산 (예금 등 - 금융부채, 만원)<input id="hFin" inputmode="numeric" placeholder="0"></label></div>
+      <div class="row"><label class="note">사전증여재산 (상속인 10년·그 외 5년, 만원)<input id="hPrior" inputmode="numeric" placeholder="0"></label><label class="note">그때 낸 증여세 (만원)<input id="hPriorTax" inputmode="numeric" placeholder="0"></label></div>
+      <div class="row"><label class="note"><input type="checkbox" id="hSp" style="width:auto"> 배우자 있음</label><label class="note">배우자가 실제 받을 금액 (만원)<input id="hSpAmt" inputmode="numeric" placeholder="0"></label></div>
+      <div class="row"><label class="note">자녀 수<input id="hKids" inputmode="numeric" placeholder="0"></label><label class="note">미성년 상속인의 19세까지 남은 연수 합<input id="hMinor" inputmode="numeric" placeholder="0"></label></div>
+      <div class="row"><label class="note">65세 이상 상속인·동거가족 수 (배우자 제외)<input id="hOld" inputmode="numeric" placeholder="0"></label><span></span></div>
+      <div id="hOut"></div>
+    </div>
+    <p class="note">근거: 상속세 및 증여세법 제26조(세율 10~50%), 제18~22조(기초·인적·일괄 5억·배우자·금융재산 공제), 제53조·제53조의2(증여공제), 제57조(세대생략 할증), 제69조(신고세액공제 3%). 동거주택·가업·영농 상속공제, 배우자 법정상속분의 정확한 계산, 재산 평가는 단순화했습니다. 상속·증여세에는 지방세가 붙지 않습니다.</p>
+    <label class="note"><input type="checkbox" id="fInc" style="width:auto"> 이 결과를 '예상 세금'의 올해 세금 합계에 포함</label>
   </div>
 </section>
 </main>
@@ -314,6 +359,7 @@ function calcTax(){
     <tr class="sum"><td>추가로 낼 세금</td><td>${won(it.due)}</td></tr></table>
    <p class="note">실효세율 ${it.profit>0?(it.total/it.profit*100).toFixed(1):'0'}% (이익 대비 소득세·지방세)</p>`;
   $('#tout').innerHTML=h;
+  window.__taxNow={vat:vatTotal,it:it.tax,itLocal:it.local,itName:nm};setTimeout(()=>calcAll());   // 첫 로드 때는 아래 계산기 코드가 준비된 뒤 실행
 }
 drawGrid();
 // 데모: ?demo=1 이면 예시 실적(음식점, 1~9월)을 채운다 — 화면 확인·시연용
@@ -375,6 +421,65 @@ function calcIns(){
    <p class="note">매달 원천세 신고·납부(다음 달 10일): 소득세 ${won(S('tax'))}원 + 지방소득세 ${won(S('local'))}원. 연간 사업주 4대보험 부담 약 ${man(S('emp')*12)}${inj?'':' · 산재보험료율을 넣으면 산재보험도 계산합니다'}.</p>`;
 }
 drawEmps();
+
+/* ── 세금 계산기 하위 탭 ── */
+let C={};try{C=JSON.parse(localStorage.getItem('calc')||'{}')}catch(e){}
+const csave=()=>{try{localStorage.setItem('calc',JSON.stringify(C))}catch(e){}};
+const MAN=v=>num(v)*1e4;
+function subTab(c){C.tab=c;csave();document.querySelectorAll('[data-c]').forEach(b=>b.classList.toggle('on',b.dataset.c===c));
+  $('#cPay').classList.toggle('hide',c!=='pay');$('#cCg').classList.toggle('hide',c!=='cg');$('#cGi').classList.toggle('hide',c!=='gi')}
+document.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>subTab(b.dataset.c));
+function giTab(g){C.gi=g;csave();document.querySelectorAll('[data-g]').forEach(b=>b.classList.toggle('on',b.dataset.g===g));$('#giftPane').classList.toggle('hide',g!=='gift');$('#inhPane').classList.toggle('hide',g!=='inh');calcGi()}
+document.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>giTab(b.dataset.g));
+const CK=['gKind','gYears','gPrice','gCost','gExp','gRes','gOne','gHeavy','gNbl','gUsed','gInc','fRel','fAmt','fPrior','fPriorTax','fUsed','fMar','fSkip','fInc','hEst','hDebt','hFun','hFin','hPrior','hPriorTax','hSp','hSpAmt','hKids','hMinor','hOld','rbOn','rbArea','rbCap'];
+CK.forEach(k=>{const el=$('#'+k),cb=el.type==='checkbox';if(C[k]!=null){if(cb)el.checked=C[k];else el.value=C[k]}
+  el.addEventListener(cb?'change':'input',()=>{C[k]=cb?el.checked:el.value;csave();calcCg();calcGi();calcAll()})});
+const tr=(a,b)=>`<tr><td>${a}</td><td>${b}</td></tr>`,res=rows=>`<table class="res" style="margin-top:8px">${rows.join('')}</table>`;
+function calcCg(){
+  const price=MAN($('#gPrice').value),cost=MAN($('#gCost').value);
+  if(!price){$('#gOut').innerHTML='<p class="load">양도가액과 취득가액을 넣으면 계산됩니다.</p>';C.cgRes=null;csave();return}
+  const r=Tax.transferTax({price,cost,expense:MAN($('#gExp').value),years:parseFloat($('#gYears').value)||0,resYears:parseFloat($('#gRes').value)||0,kind:$('#gKind').value,
+    oneHouse:$('#gOne').checked,heavy:+$('#gHeavy').value,nonBizLand:$('#gNbl').checked&&$('#gKind').value==='land',basicUsed:$('#gUsed').checked});
+  C.cgRes={tax:r.tax,local:r.local};csave();
+  $('#gOut').innerHTML=r.exempt?`<div class="kpis" style="margin-top:6px"><div class="kpi"><span>양도소득세</span><b>0원</b></div></div><p class="note">${r.note}</p>`:
+   `<div class="kpis" style="margin-top:6px"><div class="kpi"><span>양도소득세</span><b>${won(r.tax)}</b></div><div class="kpi"><span>지방소득세 (10%)</span><b>${won(r.local)}</b></div><div class="kpi"><span>합계</span><b>${won(r.total)}</b></div></div>`+
+   res([r.exemptPart?tr('비과세분 (12억 원 이하 부분)',won(r.exemptPart)):'',tr('과세 양도차익',won(r.gain)),tr(`장기보유특별공제 (${Math.round(r.ltRate*100)}%)`,'-'+won(r.lt)),tr('양도소득금액',won(r.income)),tr('과세표준 (기본공제 후)',won(r.base)),tr(`적용 세율: ${r.rateNote}`,''),`<tr class="sum"><td>납부할 세금 합계</td><td>${won(r.total)}</td></tr>`])+
+   `<p class="note">양도일이 속한 달의 말일부터 2개월 안에 예정신고·납부합니다.</p>`;
+}
+function calcGi(){
+  if((C.gi||'gift')==='gift'){
+    const amount=MAN($('#fAmt').value);
+    if(!amount){$('#fOut').innerHTML='<p class="load">증여액을 넣으면 계산됩니다.</p>';C.giRes=null;csave();return}
+    const rel=$('#fRel').value,r=Tax.giftTax({amount,relation:rel,prior:MAN($('#fPrior').value),priorTax:MAN($('#fPriorTax').value),usedDeduct:MAN($('#fUsed').value),marriage:$('#fMar').checked,skipGen:$('#fSkip').checked,minor:rel==='upMinor'});
+    C.giRes={tax:r.tax,kind:'증여세'};csave();
+    $('#fOut').innerHTML=`<div class="kpis" style="margin-top:6px"><div class="kpi"><span>증여세 (신고 시)</span><b>${won(r.tax)}</b></div></div>`+(r.note?`<p class="note">${r.note}</p>`:
+      res([tr('증여세 과세가액 (10년 합산)',won(r.value)),tr('증여재산공제','-'+won(r.ded)),tr('과세표준',won(r.base)),tr('산출세액',won(r.calc)),r.surcharge?tr('세대생략 할증','+'+won(r.surcharge)):'',r.priorTax?tr('기납부 증여세','-'+won(r.priorTax)):'',tr('신고세액공제 3%','-'+won(r.report)),`<tr class="sum"><td>납부할 증여세</td><td>${won(r.tax)}</td></tr>`]))+
+      `<p class="note">증여받은 달의 말일부터 3개월 안에 신고해야 3% 공제를 받습니다.</p>`;
+  }else{
+    const estate=MAN($('#hEst').value);
+    if(!estate){$('#hOut').innerHTML='<p class="load">상속재산을 넣으면 계산됩니다.</p>';C.giRes=null;csave();return}
+    const r=Tax.inheritTax({estate,debts:MAN($('#hDebt').value),funeral:$('#hFun').value?MAN($('#hFun').value):5e6,priorGifts:MAN($('#hPrior').value),priorGiftTax:MAN($('#hPriorTax').value),
+      spouse:$('#hSp').checked,spouseGets:MAN($('#hSpAmt').value),kids:num($('#hKids').value),minorYears:num($('#hMinor').value),elderly:num($('#hOld').value),finNet:MAN($('#hFin').value)});
+    C.giRes={tax:r.tax,kind:'상속세'};csave();
+    $('#hOut').innerHTML=`<div class="kpis" style="margin-top:6px"><div class="kpi"><span>상속세 (신고 시)</span><b>${won(r.tax)}</b></div></div>`+
+      res([tr('상속세 과세가액',won(r.value)),tr('일괄·인적공제','-'+won(r.personal)),r.spouseDed?tr('배우자 상속공제','-'+won(r.spouseDed)):'',r.fin?tr('금융재산 상속공제','-'+won(r.fin)):'',tr('공제 합계 (한도 적용)','-'+won(r.ded)),tr('과세표준',won(r.base)),
+        r.note?'':tr('산출세액',won(r.calc)),r.priorGiftTax?tr('증여세액공제','-'+won(r.priorGiftTax)):'',r.note?'':tr('신고세액공제 3%','-'+won(r.report)),`<tr class="sum"><td>납부할 상속세</td><td>${won(r.tax)}</td></tr>`])+
+      `<p class="note">${r.note?r.note+' · ':''}상속개시일이 속한 달의 말일부터 6개월 안에 신고합니다.</p>`;
+  }
+}
+function calcAll(){
+  if(!$('#allOut'))return;
+  const v=window.__taxNow||{},cg=$('#gInc').checked&&C.cgRes,gi=$('#fInc').checked&&C.giRes;
+  const rb=$('#rbOn').checked?Tax.residentBiz({kind:$('#tkind').value==='법인'?'법인':'개인',capital:MAN($('#rbCap').value),area:num($('#rbArea').value)}):null;
+  const nat=[['부가가치세',v.vat||0],[v.itName||'종합소득세',v.it||0],cg?['양도소득세',cg.tax]:null,gi?[gi.kind,gi.tax]:null].filter(Boolean);
+  const loc=[[(v.itName||'종합소득세').replace('세','')+' 지방소득세',v.itLocal||0],cg?['양도 지방소득세',cg.local]:null,rb?['주민세 사업소분',rb.total]:null].filter(Boolean);
+  const sum=a=>a.reduce((s,x)=>s+x[1],0);
+  $('#allOut').innerHTML=`<div class="kpis" style="margin-top:6px"><div class="kpi"><span>국세</span><b>${man(sum(nat))}</b></div><div class="kpi"><span>지방세</span><b>${man(sum(loc))}</b></div><div class="kpi"><span>합계</span><b>${man(sum(nat)+sum(loc))}</b></div></div>`+
+    res(nat.map(([a,b])=>tr(a,won(b))).concat(loc.map(([a,b])=>tr(a+' <span class="tag">지방세</span>',won(b))),[`<tr class="sum"><td>올해 예상 세금 합계</td><td>${won(sum(nat)+sum(loc))}</td></tr>`]));
+}
+if(qs.get('demo')&&!C.gPrice){Object.assign(C,{gKind:'building',gYears:'5',gPrice:'50000',gCost:'30000',gExp:'1000',gInc:true,fAmt:'10000',fInc:true,rbOn:true});   // 시연값
+  CK.forEach(k=>{const el=$('#'+k);if(C[k]!=null){if(el.type==='checkbox')el.checked=C[k];else el.value=C[k]}})}
+subTab(qs.get('sub')||C.tab||'pay');giTab(C.gi||'gift');calcCg();
 
 initArea().then(()=>{if(qs.get('tab'))document.querySelector(`nav button[data-t="${qs.get('tab')}"]`)?.click()});
 </script></body></html>

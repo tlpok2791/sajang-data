@@ -50,4 +50,43 @@ eq(T.withholding(2805000, 2, 1).tax, 39300 - 20830, '자녀 1명 20,830원 공�
 eq(T.withholding(2805000, 3, 3).tax, Math.max(0, 25180 - (45830 + 33330)), '자녀 3명, 음수면 0');
 eq(T.withholding(1e7, 1).tax, 1507400, '1,000만원 정확히 = 10,000천원 행');
 eq(T.withholding(12e6, 1).tax, Math.floor((1507400 + 2e6 * .98 * .35 + 25000) / 10) * 10, '1,200만원 = 1천만 세액 + 초과분×98%×35% + 2.5만');
+// 양도소득세
+let q = T.transferTax({ price: 10e8, cost: 6e8, years: 5, kind: 'house', oneHouse: true });
+eq(q.tax, 0, '1세대1주택 12억 이하 비과세');
+q = T.transferTax({ price: 5e8, cost: 3e8, expense: 1e7, years: 5, kind: 'building' });
+eq(q.lt, Math.floor(1.9e8 * .10), '일반 5년 보유 장특 10%');
+eq(q.base, 1.9e8 - 1.9e7 - 250e4, '과표 = 양도차익 - 장특 - 기본공제 250만');
+eq(q.tax, T.incomeTax(q.base), '2년 이상 보유 = 기본세율');
+eq(q.local, Math.floor(q.tax * .1), '지방소득세 10%');
+q = T.transferTax({ price: 3e8, cost: 2e8, years: 0.5, kind: 'house' });
+eq(q.tax, Math.floor((1e8 - 250e4) * .70), '주택 1년 미만 70%');
+q = T.transferTax({ price: 3e8, cost: 2e8, years: 1.5, kind: 'land' });
+eq(q.tax, Math.floor((1e8 - 250e4) * .40), '토지 1~2년 40%');
+q = T.transferTax({ price: 20e8, cost: 10e8, years: 10, resYears: 10, kind: 'house', oneHouse: true });
+eq(q.gain, Math.floor(10e8 * (20e8 - 12e8) / 20e8), '고가주택: 12억 초과분 비율만 과세');
+eq(q.ltRate, .80, '1세대1주택 10년 보유·거주 장특 80%');
+q = T.transferTax({ price: 5e8, cost: 3e8, years: 5, kind: 'house', heavy: 20 });
+eq(q.lt, 0, '중과 주택은 장특 배제');
+eq(q.tax, Math.floor(T.incomeTax(q.base) + q.base * .20), '조정 2주택 +20%p');
+// 증여세
+let g = T.giftTax({ amount: 1e8, relation: 'up' });
+eq(g.base, 5e7, '성인 자녀 1억 증여 - 공제 5천만');
+eq(g.calc, 5e6, '과표 5천만 × 10%');
+eq(g.tax, 5e6 - 150000, '신고세액공제 3%');
+eq(T.giftTax({ amount: 1.5e8, relation: 'up', marriage: true }).tax, 0, '혼인 공제 1억 + 5천만 = 1.5억 → 0');
+eq(T.giftTax({ amount: 7e8, relation: 'spouse' }).calc, 1e7, '배우자 7억 - 6억 = 1억 × 10%');
+g = T.giftTax({ amount: 1e8, relation: 'up', skipGen: true });
+eq(g.surcharge, 1.5e6, '손주 증여 할증 30%');
+eq(T.giftTax({ amount: 2e8, relation: 'up' }).calc, 1e7 + 5e7 * .20, '과표 1.5억 = 1천만 + 5천만×20%');
+// 상속세
+let h = T.inheritTax({ estate: 10e8, funeral: 5e6, kids: 2 });
+eq(h.personal, 5e8, '일괄공제 5억 (기초2억+자녀2명 1억보다 큼)');
+eq(h.base, 10e8 - 5e6 - 5e8, '배우자 없음: 과세가액 - 일괄공제');
+eq(h.calc, 1e7 + (h.base - 1e8) * .20, '과표 4.95억 = 1천만 + 1억 초과분×20%');
+eq(T.inheritTax({ estate: 9e8, spouse: true, kids: 2 }).tax, 0, '배우자+자녀: 일괄 5억 + 배우자 5억 → 0');
+eq(T.inheritTax({ estate: 20e8, finNet: 5e8, kids: 1 }).fin, 1e8, '금융재산 5억 × 20% = 1억');
+// 주민세 사업소분
+eq(T.residentBiz({ kind: '개인' }).total, 5e4, '개인 사업소분 5만원');
+eq(T.residentBiz({ kind: '법인', capital: 40e8 }).total, 1e5, '자본금 30억 초과 50억 이하 10만원');
+eq(T.residentBiz({ kind: '개인', area: 400 }).total, 5e4 + 400 * 250, '연면적 330㎡ 초과: ㎡당 250원');
 console.log('tax_test OK');
