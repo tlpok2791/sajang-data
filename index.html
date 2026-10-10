@@ -235,6 +235,7 @@ function drawStores(){
 $('#svc').onchange=loadLic;$('#bz').onchange=drawLic;let A=null;
 async function loadLic(){
   if(!D)return;const svc=$('#svc').value;
+  if(!svc){$('#bz').innerHTML='';$('#lBody').innerHTML='<div class="warn">전국 업종별 인허가 자료를 모으는 중입니다. 카페(휴게음식점)부터 차례로 추가되며, 매일 새벽 자동으로 갱신됩니다.</div>';return}   // 수집 완료 업종이 아직 없을 때
   $('#lBody').innerHTML='<div class="load">불러오는 중…</div>';
   const fs=(await Promise.all(D.ldongs.map(b=>data(`lic/${svc}/${pref.signgu}/${b}.json`)))).filter(Boolean);
   if(!fs.length){A=null;$('#bz').innerHTML='';$('#lBody').innerHTML='<p class="load">이 동네에는 해당 업종 인허가 자료가 없습니다.</p>';return}
