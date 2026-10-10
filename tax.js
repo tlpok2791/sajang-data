@@ -59,6 +59,25 @@ const Tax = (() => {
     return { profit, base, tax, local, total: tax + local, due: tax + local - prepaid };
   }
 
-  return { VA_RATE, incomeTax, corpTax, vatGeneral, vatSimple, income, corp };
+  // 4대보험 (2026년, 월 보수 기준). 근거: 국민연금법 부칙(2026 9.5%)·2026.7 기준소득월액 41만~659만원,
+  // 국민건강보험법 시행령 44조(7.19%), 노인장기요양보험법 시행령 4조(보수의 0.9448%), 고용보험료징수법 시행령 12조.
+  // 단순화: 건강보험 보수월액 상·하한, 두루누리 지원, 비과세 판단은 반영하지 않는다. 각 보험료는 10원 미만 절사.
+  const STAB = { lt150: .0025, priority: .0045, lt1000: .0065, ge1000: .0085 };   // 고용안정·직업능력개발(사업주만)
+  const PENSION_MIN = 41e4, PENSION_MAX = 659e4;
+  function insurance(pay, { size = 'lt150', injury = 0 } = {}) {
+    const f10 = x => Math.floor(x / 10 + 1e-7) * 10;      // 300만×0.9%=26999.999… 같은 소수점 오차 보정 후 10원 미만 절사
+    const base = Math.min(PENSION_MAX, Math.max(PENSION_MIN, Math.floor(pay / 1000) * 1000));
+    const rows = [
+      ['국민연금 (9.5%)', f10(base * .0475), f10(base * .0475)],
+      ['건강보험 (7.19%)', f10(pay * .03595), f10(pay * .03595)],
+      ['장기요양 (0.9448%)', f10(pay * .004724), f10(pay * .004724)],
+      ['고용보험', f10(pay * .009), f10(pay * (.009 + STAB[size]))],
+      ['산재보험', 0, f10(pay * injury)],
+    ];
+    const worker = rows.reduce((s, r) => s + r[1], 0), employer = rows.reduce((s, r) => s + r[2], 0);
+    return { pensionBase: base, rows, worker, employer, net: pay - worker };
+  }
+
+  return { VA_RATE, incomeTax, corpTax, vatGeneral, vatSimple, income, corp, insurance };
 })();
 if (typeof module !== 'undefined') module.exports = Tax;

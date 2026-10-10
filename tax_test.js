@@ -29,4 +29,16 @@ eq(T.vatSimple({ sales: 4e7, card: 0, buyTax: 0 }, { industry: '음식점업' })
 let i = T.income({ sales: 1.2e8, buyTax: 4e7, buyFree: 1e7, labor: 2e7, other: 1e7 }, { people: 2 });
 eq(i.base, 4e7 - 3e6, '종소 과표 = 이익 - 기본공제 2인');
 eq(i.local, Math.floor(i.tax * .1), '지방소득세 10%');
+// 4대보험: 월 300만원, 150인 미만, 산재 1%
+let n = T.insurance(3e6, { injury: .01 });
+eq(n.rows[0][1], 142500, '국민연금 근로자 300만×4.75%');
+eq(n.rows[1][1], 107850, '건강보험 300만×3.595%');
+eq(n.rows[2][1], 14170, '장기요양 300만×0.4724% (10원 미만 절사)');
+eq(n.rows[3][1], 27000, '고용 근로자 0.9%');
+eq(n.rows[3][2], 34500, '고용 사업주 0.9%+0.25%');
+eq(n.rows[4][2], 30000, '산재 사업주 1%');
+eq(n.worker, 142500 + 107850 + 14170 + 27000, '근로자 합계');
+eq(T.insurance(1e7).pensionBase, 659e4, '국민연금 상한 659만원');
+eq(T.insurance(3e5).pensionBase, 41e4, '국민연금 하한 41만원');
+eq(T.insurance(3e6, { size: 'ge1000' }).rows[3][2], 52500, '1천명 이상 사업주 0.9%+0.85% = 300만×1.75%');
 console.log('tax_test OK');

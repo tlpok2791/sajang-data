@@ -4,3 +4,8 @@
 *.xlsx
 __pycache__/
 *.pyc
+.cache/
+*.tmp
+export.log
+lic_prefetch.log
+data/
