@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>사장님 데이터 비서</title>
+<meta name="description" content="공공데이터로 보는 우리 동네 상권, 세금 일정, 예상 세금 계산 — 세정회계법인 서동희 회계사">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/pretendard.css">
+<style>
+:root{--navy:#1e2d50;--navy2:#344a76;--orange:#e8590c;--bg:#f3f5f9;--card:#fff;--ink:#1a2236;--sub:#6b7488;--line:#e3e7ef}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Pretendard,'Malgun Gothic',sans-serif;font-size:15px}
+header{background:var(--navy);color:#fff;padding:18px 16px 0}
+header h1{margin:0;font-size:19px}header p{margin:4px 0 12px;font-size:12px;color:#c9d2e6}
+nav{display:flex;gap:4px}nav button{flex:1;border:0;background:transparent;color:#c9d2e6;padding:11px 0;font:inherit;font-weight:600;border-bottom:3px solid transparent}
+nav button.on{color:#fff;border-color:var(--orange)}
+main{max-width:720px;margin:0 auto;padding:14px 16px 60px}
+.card{background:var(--card);border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(20,30,60,.06)}
+h2{font-size:16px;margin:0 0 10px;color:var(--navy)}h3{font-size:14px;margin:14px 0 6px}
+select,input,textarea,button.act{font:inherit;padding:10px;border:1px solid var(--line);border-radius:8px;width:100%;background:#fff}
+.row{display:flex;gap:8px;margin-bottom:8px}.row>*{flex:1;min-width:0}
+button.act{background:var(--navy);color:#fff;border:0;font-weight:700}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.kpi{background:var(--bg);border-radius:10px;padding:10px}.kpi b{display:block;font-size:22px;color:var(--navy)}.kpi span{font-size:12px;color:var(--sub)}
+.bar{display:flex;align-items:center;gap:8px;font-size:13px;margin:4px 0}.bar i{display:block;height:10px;background:var(--navy2);border-radius:5px}
+.bar .lab{width:110px;flex:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bar .n{color:var(--sub);flex:none}
+.chart{display:flex;align-items:center;height:170px;gap:2px;margin-top:6px}
+.chart .m{flex:1;display:flex;flex-direction:column;height:100%;font-size:10px;color:var(--sub);text-align:center}
+.chart .up,.chart .dn{flex:1;display:flex;flex-direction:column;justify-content:flex-end}.chart .dn{justify-content:flex-start}
+.chart .up i{background:var(--navy);display:block}.chart .dn i{background:var(--orange);display:block}
+.legend{font-size:12px;color:var(--sub)}.legend b{color:var(--navy)}.legend em{color:var(--orange);font-style:normal;font-weight:700}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:7px 4px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{color:var(--sub);font-weight:600}
+.tag{display:inline-block;font-size:11px;padding:1px 6px;border-radius:8px;background:#eef1f7;color:var(--navy2)}
+.tag.o{background:#fff1e8;color:var(--orange)}
+.note{font-size:12px;color:var(--sub);line-height:1.6}.warn{background:#fff6ec;color:#9a4a10;border-radius:8px;padding:10px;font-size:13px}
+.dday{font-weight:800;color:var(--orange);white-space:nowrap}.past{opacity:.45}
+td:first-child{white-space:nowrap}.scroll{overflow-x:auto;margin:0 -4px}.grid input{width:96px;padding:6px;text-align:right;font-size:13px}.grid td,.grid th{padding:3px;white-space:nowrap}.res td:last-child{text-align:right;font-variant-numeric:tabular-nums}.res tr.sum td{font-weight:800;color:var(--navy);border-top:2px solid var(--navy)}.hide{display:none}.load{color:var(--sub);font-size:13px;padding:6px 0}
+
+footer{max-width:720px;margin:0 auto;padding:0 16px 40px;font-size:12px;color:var(--sub);line-height:1.7}</style></head><body>
+<header><h1>사장님 데이터 비서</h1><p>공공데이터로 보는 우리 동네 상권 · 세금 일정 · 예상 세금 | 세정회계법인 서동희 회계사</p>
+<nav><button data-t="area" class="on">우리 동네 상권</button><button data-t="cal">세금 일정</button><button data-t="tax">예상 세금</button><button data-t="biz">거래처 확인</button></nav></header>
+<main>
+
+<section id="area">
+  <div class="card"><h2>지역 선택</h2>
+    <div class="row"><select id="signgu"></select><select id="adong"></select></div>
+    <div class="row"><select id="lcls"></select></div>
+    <p class="note" id="areaNote"></p>
+  </div>
+  <div class="card"><h2 id="sTitle">점포 현황</h2><div id="sBody" class="load">지역을 고르세요</div></div>
+  <div class="card"><h2>월별 개업 · 폐업 (인허가)</h2>
+    <div class="row"><select id="svc"></select><select id="bz"></select></div>
+    <div id="lBody" class="load">지역을 고르세요</div>
+  </div>
+</section>
+
+<section id="biz" class="hide">
+  <div class="card"><h2>거래처 사업자 상태 확인</h2>
+    <p>거래처가 계속 영업 중인지, 휴업·폐업했는지는 <b>홈택스</b>에서 바로 조회할 수 있습니다. 로그인 없이 사업자등록번호만 넣으면 됩니다.</p>
+    <a class="act" style="display:block;text-align:center;padding:12px;border-radius:8px;background:var(--navy);color:#fff;font-weight:700;text-decoration:none" href="https://hometax.go.kr" target="_blank" rel="noopener">홈택스 열기 →</a>
+    <p class="note">홈택스 첫 화면에서 [조회/발급] → [사업자상태] → [사업자등록상태조회]로 들어가세요. 폐업·휴업한 거래처의 세금계산서는 매입세액 공제가 문제될 수 있으니 큰 거래 전에 확인하세요.</p>
+  </div>
+</section>
+
+<section id="cal" class="hide">
+  <div class="card"><h2>세금 일정</h2>
+    <div class="row"><select id="who"><option>개인</option><option>법인</option></select><select id="year"></select></div>
+    <div id="calOut"></div>
+    <p class="note">12월 결산 법인 기준. 기한이 토·일·공휴일이면 다음 영업일로 옮겨 표시합니다(국세기본법 제5조). 성실신고 대상, 반기납부 승인 등 개별 사정에 따라 다를 수 있습니다.</p>
+  </div>
+</section>
+<section id="tax" class="hide">
+  <div class="card"><h2>사업자 정보</h2>
+    <div class="row"><select id="tkind"><option value="일반">개인 · 일반과세자</option><option value="간이">개인 · 간이과세자</option><option value="법인">법인</option></select><select id="tind"></select></div>
+    <div class="row"><select id="tyear"></select><select id="tproj"><option value="annual">연간으로 환산해서 예상</option><option value="ytd">입력한 달까지만</option></select></div>
+    <div class="row personal"><input id="tpeople" inputmode="numeric" placeholder="기본공제 인원 (본인 포함, 기본 1)"><input id="tded" inputmode="numeric" placeholder="기타 소득공제 (노란우산 등)"></div>
+    <div class="row corp hide"><input id="tloss" inputmode="numeric" placeholder="이월결손금"><label class="note" style="align-self:center"><input type="checkbox" id="tsmall" style="width:auto"> 부동산임대 위주 소규모 법인</label></div>
+    <div class="row"><input id="tpre" inputmode="numeric" placeholder="이미 낸 중간예납 (소득·법인세)"></div>
+  </div>
+  <div class="card"><h2>월별 실적 입력</h2>
+    <p class="note">단위: 원, <b>부가세를 뺀 금액(공급가액)</b>. 매달 쌓아 가며 입력하면 됩니다. 엑셀에서 표를 복사해 붙여 넣을 수도 있습니다(열 순서는 아래 표와 같게).</p>
+    <div class="scroll"><table class="grid" id="tgrid"></table></div>
+    <div class="row" style="margin-top:8px"><button class="act" id="tpasteBtn" style="background:var(--navy2)">엑셀에서 붙여넣기</button><button class="act" id="tclear" style="background:#8a93a6">이 연도 지우기</button></div>
+    <textarea id="tpaste" class="hide" rows="5" placeholder="엑셀에서 1월~12월 행을 복사해 여기에 붙여 넣으세요"></textarea>
+    <p class="note">입력한 숫자는 이 기기 브라우저에만 저장되고 서버로 보내지 않습니다.</p>
+  </div>
+  <div class="card"><h2>예상 세금</h2><div id="tout"></div>
+    <p class="note">2026년 세법 기준 단순 추정입니다. 감가상각, 각종 세액공제·감면, 의제매입세액 한도, 최저한세, 가산세는 반영하지 않았고, 경비는 입력한 금액이 모두 인정된다고 가정했습니다. 실제 신고 전에는 회계사 검토를 받으세요.</p>
+  </div>
+</section>
+
+</main>
+<footer id="foot"></footer>
+<script src="tax.js"></script>
+<script>
+const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const opts=(el,list,first)=>{el.innerHTML=(first?`<option value="">${first}</option>`:'')+list.map(([v,t])=>`<option value="${esc(v)}">${esc(t)}</option>`).join('')};
+const cache={};async function data(p){if(!(p in cache)){const r=await fetch('data/'+p);cache[p]=r.ok?await r.json():null}return cache[p]}
+let pref={};try{pref=JSON.parse(localStorage.getItem('pref')||'{}')}catch(e){}
+const save=()=>{try{localStorage.setItem('pref',JSON.stringify(pref))}catch(e){}};
+const qs=new URLSearchParams(location.search);
+if(qs.get('adong')){pref.adong=qs.get('adong');pref.signgu=qs.get('adong').slice(0,5)}
+const Y=new Date().getFullYear();let META;
+
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));
+  ['area','biz','cal','tax'].forEach(t=>$('#'+t).classList.toggle('hide',t!==b.dataset.t));
+  if(b.dataset.t==='cal')loadCal();if(b.dataset.t==='tax')calcTax();
+});
+
+/* ── 지역 ── */
+async function initArea(){
+  META=await data('meta.json');
+  $('#foot').innerHTML=`자료: ${META.sources.map(esc).join(', ')} (공공데이터포털, ${META.updated} 기준, 매월 갱신).<br>공공데이터 기준이라 실제와 다를 수 있습니다. 예상 세금은 단순 추정이며 세무 판단은 전문가와 상의하세요.<br>© 세정회계법인 서동희 회계사`;
+  opts($('#signgu'),Object.entries(META.regions).map(([k,v])=>[k,v.name]));
+  opts($('#svc'),Object.entries(META.license_services).map(([k,v])=>[k,v+(META.license_status[k]==='ok'?'':' (준비 중)')]));
+  $('#areaNote').textContent=`현재 수원시 ${Object.values(META.regions).reduce((s,r)=>s+r.dongs.length,0)}개 동을 제공합니다. 다른 지역은 차례로 추가합니다.`;
+  if(pref.signgu&&META.regions[pref.signgu])$('#signgu').value=pref.signgu;onSigngu(true);
+}
+function onSigngu(restore){pref.signgu=$('#signgu').value;save();
+  opts($('#adong'),META.regions[pref.signgu].dongs,'행정동');
+  if(restore&&pref.adong)$('#adong').value=pref.adong;if($('#adong').value)onAdong()}
+$('#signgu').onchange=()=>onSigngu();$('#adong').onchange=()=>onAdong();
+
+let S=[],L=[],D;
+async function onAdong(){pref.adong=$('#adong').value;save();if(!pref.adong)return;
+  $('#sBody').innerHTML='<div class="load">불러오는 중…</div>';
+  D=await data(`dong/${pref.adong}.json`);
+  S=D.stores.map(x=>({bizesNm:x.n,brchNm:x.b,indsLclsNm:x.l,indsMclsNm:x.m,indsSclsNm:x.s,rdnmAdr:x.a,flrNo:x.f}));
+  const l=[...new Set(S.map(x=>x.indsLclsNm))].sort();opts($('#lcls'),l.map(x=>[x,x]));
+  $('#lcls').value=l.includes(pref.lcls)?pref.lcls:(l.includes('음식')?'음식':l[0]);drawStores();loadLic();
+}
+$('#lcls').onchange=()=>{pref.lcls=$('#lcls').value;save();drawStores()};
+const count=(a,f)=>Object.entries(a.reduce((m,x)=>(m[f(x)]=(m[f(x)]||0)+1,m),{})).sort((a,b)=>b[1]-a[1]);
+function bars(list){const m=Math.max(...list.map(x=>x[1]),1);return list.map(([k,n])=>`<div class="bar"><span class="lab">${esc(k)}</span><i style="width:${n/m*60}%"></i><span class="n">${n}</span></div>`).join('')}
+function drawStores(){
+  const lc=$('#lcls').value,a=S.filter(x=>x.indsLclsNm===lc);
+  $('#sTitle').textContent=`${D.adong} · ${lc} 점포 현황`;
+  $('#sBody').innerHTML=`<div class="kpis"><div class="kpi"><b>${S.length}</b><span>전체 점포</span></div><div class="kpi"><b>${a.length}</b><span>${esc(lc)} 점포</span></div><div class="kpi"><b>${(a.length/S.length*100).toFixed(0)}%</b><span>비중</span></div></div>
+   <h3>세부 업종</h3>${bars(count(a,x=>x.indsSclsNm).slice(0,12))}
+   <h3>상호 찾기</h3><input id="q" placeholder="상호 검색"><div id="list"></div>
+   <p class="note">소상공인시장진흥공단 상가(상권)정보 · ${META.updated} 기준 영업 중인 점포</p>`;
+  const list=()=>{const q=$('#q').value.trim(),r=a.filter(x=>!q||(x.bizesNm+(x.brchNm||'')).includes(q));
+    $('#list').innerHTML=`<table><tr><th>상호</th><th>업종</th><th>주소</th></tr>${r.slice(0,20).map(x=>`<tr><td>${esc(x.bizesNm)} ${esc(x.brchNm||'')}</td><td><span class="tag">${esc(x.indsSclsNm)}</span></td><td>${esc(x.rdnmAdr)}${x.flrNo?' '+esc(x.flrNo)+'층':''}</td></tr>`).join('')}</table>${r.length>20?`<p class="note">${r.length}곳 중 20곳 표시 · 검색으로 좁히세요</p>`:''}`};
+  $('#q').oninput=list;list();
+}
+
+/* ── 인허가 ── */
+const CAFE_BZ=['커피숍','다방','전통찻집','떡카페','키즈카페'],CAFE_NM=/카페|까페|커피|coffee|cafe|찻집/i;
+$('#svc').onchange=loadLic;$('#bz').onchange=drawLic;
+async function loadLic(){
+  if(!D)return;const svc=$('#svc').value;
+  if(META.license_status[svc]!=='ok'){$('#lBody').innerHTML='<div class="warn">이 업종 인허가 자료는 준비 중입니다.</div>';$('#bz').innerHTML='';return}
+  $('#lBody').innerHTML='<div class="load">불러오는 중…</div>';
+  L=(await Promise.all(D.ldongs.map(b=>data(`lic/${svc}/${pref.signgu}/${b}.json`)))).flatMap(x=>x||[]);
+  const b=count(L,x=>x.bz).map(([k])=>[k,k]);
+  opts($('#bz'),(svc==='rest_cafes'?[['__cafe','카페만 (커피숍·다방 등 + 상호)']]:[]).concat([['','전체 업태']],b));drawLic();
+}
+const ym=d=>d.toISOString().slice(0,7);
+function drawLic(){
+  const f=$('#bz').value,rows=L.filter(x=>f==='__cafe'?(CAFE_BZ.includes(x.bz)||CAFE_NM.test(x.name)):!f||x.bz===f);
+  const norm=s=>s.replace(/\s|\(.*?\)/g,''),tr=new Set();             // 같은 상호 폐업 후 60일 안 재인허가 = 양도·양수 추정
+  rows.forEach(a=>a.close&&rows.forEach(b=>{if(b!==a&&norm(b.name)===norm(a.name)){const g=(new Date(b.open)-new Date(a.close))/864e5;if(g>=0&&g<=60){tr.add(a);tr.add(b)}}}));
+  const base=new Date(META.updated),months=[];for(let i=24;i>=1;i--)months.push(ym(new Date(base.getFullYear(),base.getMonth()-i,15)));
+  const op={},cl={};rows.forEach(x=>{if(tr.has(x))return;op[x.open.slice(0,7)]=(op[x.open.slice(0,7)]||0)+1;if(x.close)cl[x.close.slice(0,7)]=(cl[x.close.slice(0,7)]||0)+1});
+  const mx=Math.max(1,...months.map(m=>Math.max(op[m]||0,cl[m]||0))),last12=months.slice(-12),sum=(o,ms)=>ms.reduce((s,m)=>s+(o[m]||0),0);
+  const live=rows.filter(x=>!x.close).length,cut=new Date(base.getFullYear()-3,base.getMonth(),1).toISOString().slice(0,10);
+  const coh=rows.filter(x=>x.open>='2015-01-01'&&x.open<cut),dead=coh.filter(x=>x.close&&(new Date(x.close)-new Date(x.open))/864e5<365*3);
+  const rec=months.slice(-3),nw=rows.filter(x=>rec.includes(x.open.slice(0,7))).sort((a,b)=>b.open.localeCompare(a.open)),gn=rows.filter(x=>x.close&&rec.includes(x.close.slice(0,7))).sort((a,b)=>b.close.localeCompare(a.close));
+  const t=x=>tr.has(x)?' <span class="tag o">양도·양수 추정</span>':'';
+  $('#lBody').innerHTML=`<div class="kpis"><div class="kpi"><b>${live}</b><span>영업 중 (인허가)</span></div><div class="kpi"><b>${sum(op,last12)} / ${sum(cl,last12)}</b><span>최근 12개월 개업 / 폐업</span></div><div class="kpi"><b>${coh.length?Math.round(dead.length/coh.length*100)+'%':'-'}</b><span>개업 3년 안 폐업 비율</span></div></div>
+   <div class="chart">${months.map((m,i)=>`<div class="m"><div class="up"><i style="height:${(op[m]||0)/mx*100}%"></i></div><div class="dn"><i style="height:${(cl[m]||0)/mx*100}%"></i></div>${i%6===0||i===23?m.slice(2).replace('-','.'):'&nbsp;'}</div>`).join('')}</div>
+   <p class="legend"><b>■ 개업</b> &nbsp; <em>■ 폐업</em> &nbsp; 최근 24개월 (양도·양수 추정 제외)</p>
+   <h3>최근 3개월 새로 연 곳 (${nw.length})</h3><table>${nw.map(x=>`<tr><td>${x.open}</td><td>${esc(x.name)}${t(x)}<br><span class="note">${esc(x.addr)}</span></td></tr>`).join('')||'<tr><td>없음</td></tr>'}</table>
+   <h3>최근 3개월 문 닫은 곳 (${gn.length})</h3><table>${gn.map(x=>`<tr><td>${x.close}</td><td>${esc(x.name)}${t(x)} <span class="tag">${((new Date(x.close)-new Date(x.open))/31536e6).toFixed(1)}년 영업</span><br><span class="note">${esc(x.addr)}</span></td></tr>`).join('')||'<tr><td>없음</td></tr>'}</table>
+   <p class="note">행정안전부 인허가 데이터 · 법정동 ${D.ldongs.map(esc).join(', ')} 기준이라 행정동 점포 수와 1:1로 맞지 않습니다.</p>`;
+}
+
+/* ── 세금 일정 (12월 결산 기준, 기한이 토·일·공휴일이면 다음 영업일 — 국세기본법 제5조) ── */
+const DEADLINES=[
+  [1,25,'공통','부가세 2기 확정신고·납부','직전 7~12월분. 간이과세자는 직전 1년분 신고'],
+  [2,10,'개인','면세사업자 사업장현황신고','병의원·학원 등 부가세 면세 개인사업자'],
+  [3,10,'공통','근로·사업소득 지급명세서 제출','연말정산 결과 포함 (2월분 원천세와 함께)'],
+  [3,31,'법인','법인세 신고·납부','12월 결산 법인'],
+  [4,25,'법인','부가세 1기 예정신고·납부','1~3월분. 직전기 공급가액 1.5억 원 미만 법인은 예정고지 납부'],
+  [4,25,'개인','부가세 1기 예정고지 납부','세무서 고지서 금액 납부 (일반과세자)'],
+  [4,30,'법인','법인지방소득세 신고·납부','12월 결산 법인'],
+  [5,31,'개인','종합소득세·지방소득세 신고·납부','성실신고확인 대상자는 6월 30일'],
+  [6,30,'개인','종합소득세 신고 (성실신고확인 대상)','업종별 수입금액 기준 이상 사업자'],
+  [7,25,'공통','부가세 1기 확정신고·납부','법인 4~6월분 / 개인 1~6월분'],
+  [8,31,'법인','법인세 중간예납','12월 결산 법인'],
+  [10,25,'법인','부가세 2기 예정신고·납부','7~9월분'],
+  [10,25,'개인','부가세 2기 예정고지 납부','세무서 고지서 금액 납부 (일반과세자)'],
+  [11,30,'개인','종합소득세 중간예납','세무서 고지서 금액 납부']];
+const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+function calendar(year,who){
+  const hol=META.holidays?.[year],hs=new Set(hol||[]);
+  const roll=d=>{d=new Date(d);while(d.getDay()===0||d.getDay()===6||hs.has(iso(d).replace(/-/g,'')))d.setDate(d.getDate()+1);return d};
+  const out=DEADLINES.filter(x=>x[2]==='공통'||x[2]===who).map(([m,d,w,t,n])=>[new Date(year,m-1,d),t,n]);
+  for(let m=0;m<12;m++){out.push([new Date(year,m,10),'원천세 신고·납부','직원 급여·프리랜서 지급분 (반기납부 승인 시 1월·7월만)']);out.push([new Date(year,m,10),'4대보험료 납부','전월분'])}
+  return {ok:!!hol,rows:out.sort((a,b)=>a[0]-b[0]).map(([d,t,n])=>{const r=roll(d);return {date:iso(r),legal:iso(d),moved:+r!==+d,title:t,note:n}})};
+}
+opts($('#year'),[Y,Y+1].map(y=>[y,y+'년']));
+$('#who').value=pref.who||'개인';$('#who').onchange=()=>{pref.who=$('#who').value;save();loadCal()};$('#year').onchange=loadCal;
+function loadCal(){
+  if(!META)return;const r=calendar($('#year').value,$('#who').value),today=iso(new Date()),hide4=document.getElementById('h4')?.checked;
+  $('#calOut').innerHTML=(r.ok?'':'<div class="warn">공휴일은 아직 반영 전입니다(주말만 반영).</div>')+
+   `<label class="note"><input type="checkbox" id="h4" style="width:auto" ${hide4?'checked':''}> 매월 원천세·4대보험 숨기기</label>
+   <table>${r.rows.filter(x=>!(hide4&&/원천세|4대보험/.test(x.title))).map(x=>{const d=Math.round((new Date(x.date)-new Date(today))/864e5);
+     return `<tr class="${d<0?'past':''}"><td style="width:92px">${x.date.slice(5).replace('-','/')}${x.moved?'<br><span class="note">법정 '+x.legal.slice(5).replace('-','/')+'</span>':''}</td><td><b>${esc(x.title)}</b><br><span class="note">${esc(x.note)}</span></td><td class="dday">${d<0?'':d===0?'D-day':'D-'+d}</td></tr>`}).join('')}</table>`;
+  $('#h4').onchange=loadCal;
+}
+/* ── 예상 세금 ── */
+const COLS=[['sales','매출'],['card','그중 카드·현금영수증'],['buyTax','과세 매입 (세금계산서·카드)'],['buyFree','면세 매입 (식재료 등)'],['labor','인건비'],['other','기타 경비']];
+const num=v=>{const n=parseInt(String(v??'').replace(/[^\d-]/g,''),10);return isNaN(n)?0:n},won=n=>Math.round(n).toLocaleString('ko-KR'),man=n=>(n/1e4).toLocaleString('ko-KR',{maximumFractionDigits:0})+'만 원';
+opts($('#tind'),Object.keys(Tax.VA_RATE).map(k=>[k,k]));opts($('#tyear'),[Y,Y-1,Y+1].map(y=>[y,y+'년 귀속']));
+const TKEYS=['tkind','tind','tproj','tpeople','tded','tloss','tpre'];
+let T={};try{T=JSON.parse(localStorage.getItem('tax')||'{}')}catch(e){T={}}
+const tsave=()=>{try{localStorage.setItem('tax',JSON.stringify(T))}catch(e){}};
+TKEYS.forEach(k=>{if(T[k]!=null)$('#'+k).value=T[k];$('#'+k).addEventListener('input',()=>{T[k]=$('#'+k).value;tsave();calcTax()})});
+$('#tsmall').checked=!!T.tsmall;$('#tsmall').onchange=()=>{T.tsmall=$('#tsmall').checked;tsave();calcTax()};
+$('#tyear').onchange=()=>{drawGrid();calcTax()};
+const months=()=>(T['m'+$('#tyear').value]??=Array.from({length:12},()=>({})));
+function drawGrid(){
+  const M=months();
+  $('#tgrid').innerHTML=`<tr><th>월</th>${COLS.map(([,n])=>`<th>${n}</th>`).join('')}</tr>`+M.map((r,i)=>`<tr><td>${i+1}월</td>${COLS.map(([k])=>`<td><input inputmode="numeric" data-m="${i}" data-k="${k}" value="${r[k]?won(r[k]):''}"></td>`).join('')}</tr>`).join('');
+  $('#tgrid').querySelectorAll('input').forEach(el=>{
+    el.oninput=()=>{M[el.dataset.m][el.dataset.k]=num(el.value);tsave();calcTax()};
+    el.onblur=()=>{el.value=num(el.value)?won(num(el.value)):''};
+  });
+}
+$('#tpasteBtn').onclick=()=>{$('#tpaste').classList.toggle('hide');$('#tpaste').focus()};
+$('#tpaste').onpaste=e=>{e.preventDefault();pasteRows(e.clipboardData.getData('text'))};
+function pasteRows(text){const M=months();let i=0;
+  for(const line of text.split(/\r?\n/)){
+    if(!line.trim()||i>11)continue;let c=line.split('\t');
+    const mm=c[0].match(/^\s*(\d{1,2})\s*월?\s*$/);if(mm){i=Math.min(11,+mm[1]-1);c=c.slice(1)}else if(!/\d/.test(c[0]))continue;   // 월 라벨은 위치로, 머리글 행은 건너뜀
+    COLS.forEach(([k],j)=>{if(c[j]!=null&&c[j].trim()!=='')M[i][k]=num(c[j])});i++}
+  tsave();drawGrid();calcTax();$('#tpaste').classList.add('hide')}
+$('#tclear').onclick=()=>{delete T['m'+$('#tyear').value];tsave();drawGrid();calcTax()};
+
+function calcTax(){
+  const kind=$('#tkind').value,ind=$('#tind').value,M=months(),annual=$('#tproj').value==='annual';
+  document.querySelectorAll('#tax .personal').forEach(e=>e.classList.toggle('hide',kind==='법인'));
+  document.querySelectorAll('#tax .corp').forEach(e=>e.classList.toggle('hide',kind!=='법인'));
+  const has=r=>COLS.some(([k])=>r[k]),filled=M.map((r,i)=>has(r)?i:-1).filter(i=>i>=0),n=filled.length?Math.max(...filled)+1:0;
+  if(!n){$('#tout').innerHTML='<p class="load">월별 실적을 입력하면 바로 계산됩니다.</p>';return}
+  const sum=(a,b)=>COLS.reduce((o,[k])=>(o[k]=M.slice(a,b).reduce((s,r)=>s+(r[k]||0),0),o),{});
+  const scale=(o,f)=>Object.fromEntries(Object.entries(o).map(([k,v])=>[k,v*f]));
+  const ytd=sum(0,n),Ann=annual?scale(ytd,12/n):ytd,cost=x=>x.buyTax+x.buyFree+x.labor+x.other;
+  let h=`<p class="note">${n}월까지 입력 · ${annual?`연간 환산(×12/${n})`:'입력한 달까지만'} 기준</p>
+    <table class="res"><tr><td>매출 누적</td><td>${won(ytd.sales)}</td></tr><tr><td>경비 누적</td><td>${won(cost(ytd))}</td></tr><tr><td>이익 누적</td><td>${won(ytd.sales-cost(ytd))}</td></tr></table>`;
+  let vatTotal=0,vatRows='';
+  if(kind==='간이'){
+    const v=Tax.vatSimple(Ann,{industry:ind});vatTotal=v.tax;
+    vatRows=v.exempt?`<tr><td>연 공급대가 ${man(v.supply)} → 4,800만 원 미만이라 <b>납부 면제</b></td><td>0</td></tr>`
+      :`<tr><td>공급대가 ${won(v.supply)} × 부가가치율 ${v.rate*100}% × 10%</td><td>${won(v.gross)}</td></tr><tr><td>매입 공제 (공급대가 × 0.5%)</td><td>-${won(v.buy)}</td></tr><tr><td>카드 발행세액공제 1.3%</td><td>-${won(v.card)}</td></tr>`;
+    vatRows+=`<tr class="sum"><td>부가세 (연 1회, 다음 해 1/25)</td><td>${won(v.tax)}</td></tr>`;
+  }else{
+    let used=0;
+    for(const [a,b,lab,due] of [[0,6,'1기 (1~6월)','7/25'],[6,12,'2기 (7~12월)','다음 해 1/25']]){
+      const k=Math.max(0,Math.min(n,b)-a);if(!k&&!annual)continue;
+      const p=annual?(k?scale(sum(a,a+k),6/k):scale(ytd,6/n)):sum(a,a+k);
+      const v=Tax.vatGeneral(p,{kind:kind==='법인'?'법인':'개인',industry:ind,cardUsed:used});used+=v.card;vatTotal+=v.tax;
+      vatRows+=`<tr><td colspan="2"><b>${lab}</b> ${annual&&k<6?`<span class="note">(${k?k+'개월 입력분 환산':'1기 실적으로 추정'})</span>`:''}</td></tr>
+        <tr><td>매출세액</td><td>${won(v.out)}</td></tr><tr><td>매입세액</td><td>-${won(v.inp)}</td></tr>
+        ${v.deemed?`<tr><td>의제매입세액 (${v.deemedRate})</td><td>-${won(v.deemed)}</td></tr>`:''}${v.card?`<tr><td>카드 발행세액공제 1.3%</td><td>-${won(v.card)}</td></tr>`:''}
+        <tr class="sum"><td>${v.tax<0?'환급 예상':'납부 예상'} (${due})</td><td>${won(v.tax)}</td></tr>`;
+    }
+    if(kind==='법인')vatRows+=`<tr><td colspan="2" class="note">법인은 분기마다 예정신고(4/25·10/25)로 나눠 냅니다. 위 금액은 반기 합계입니다.</td></tr>`;
+  }
+  const pre=num($('#tpre').value);
+  const it=kind==='법인'?Tax.corp(Ann,{lossCarry:num($('#tloss').value),smallRent:$('#tsmall').checked,prepaid:pre})
+                       :Tax.income(Ann,{people:Math.max(1,num($('#tpeople').value)||1),otherDeduct:num($('#tded').value),prepaid:pre});
+  const nm=kind==='법인'?'법인세':'종합소득세',due=kind==='법인'?'다음 해 3/31':'다음 해 5/31';
+  h+=`<div class="kpis" style="margin-top:10px"><div class="kpi"><span>부가세 ${annual?'연간':'누적'} 예상</span><b>${man(vatTotal)}</b></div><div class="kpi"><span>${nm}+지방세 예상</span><b>${man(it.due)}</b></div></div>
+   <h3>부가가치세</h3><table class="res">${vatRows}</table>
+   <h3>${nm} (${due})</h3><table class="res">
+    <tr><td>${kind==='법인'?'각 사업연도 소득':'사업소득금액'} (매출 - 경비)</td><td>${won(it.profit)}</td></tr>
+    <tr><td>과세표준</td><td>${won(it.base)}</td></tr><tr><td>산출세액</td><td>${won(it.tax)}</td></tr>
+    <tr><td>지방소득세${kind==='법인'?' (근사, 산출세액의 10%)':' (10%)'}</td><td>${won(it.local)}</td></tr>
+    ${pre?`<tr><td>이미 낸 중간예납</td><td>-${won(pre)}</td></tr>`:''}
+    <tr class="sum"><td>추가로 낼 세금</td><td>${won(it.due)}</td></tr></table>
+   <p class="note">실효세율 ${it.profit>0?(it.total/it.profit*100).toFixed(1):'0'}% (이익 대비 소득세·지방세)</p>`;
+  $('#tout').innerHTML=h;
+}
+drawGrid();
+// 데모: ?demo=1 이면 예시 실적(음식점, 1~9월)을 채운다 — 화면 확인·시연용
+if(qs.get('demo')&&!months().some(r=>r.sales)){$('#tind').value='음식점업';T.tind='음식점업';pasteRows(Array.from({length:9},(_,i)=>`${i+1}월\t${18e6+i*5e5}\t${15e6+i*4e5}\t${5e6}\t${3.5e6}\t${4e6}\t${2.5e6}`).join('\n'))}
+
+initArea().then(()=>{if(qs.get('tab'))document.querySelector(`nav button[data-t="${qs.get('tab')}"]`)?.click()});
+</script></body></html>
