@@ -73,12 +73,11 @@ def ok_set():
 
 
 def busy():
-    """손으로 돌린 수집(lic.log)이 아직 진행 중이면 겹치지 않게 건너뛴다."""
-    lg = HERE / 'lic.log'
-    if not lg.exists():
-        return False
-    recent = dt.datetime.now().timestamp() - lg.stat().st_mtime < 15 * 60
-    return recent and 'exit=' not in lg.read_text(encoding='utf-8', errors='replace')[-300:]
+    """export.py 수집이 이미 돌고 있으면 겹치지 않게 건너뛴다.
+    로그 시각으로 판단하면 PC 절전 뒤 멈춘 수집과 겹친다(2026-10-11 두 개가 동시에 돎) → 실제 프로세스를 본다."""
+    ps = "Get-CimInstance Win32_Process -Filter \"name='python.exe'\" | % CommandLine"
+    out = subprocess.run(['powershell', '-NoProfile', '-Command', ps], capture_output=True, text=True, errors='replace').stdout
+    return 'export.py' in out
 
 
 def main():
