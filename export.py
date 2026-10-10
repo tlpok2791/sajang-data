@@ -236,6 +236,30 @@ def locate(lot, road, sg_index):
     return None, ''
 
 
+def fetch_all(skip=()):
+    """업종별 쪽 내려받기만 동시에(업종마다 호출 한도가 따로라 겹쳐도 한도 손해 없음). 집계는 licenses()가 캐시로 바로 끝낸다."""
+    def one(svc):
+        try:
+            total = get(LOCAL.format(svc), pageNo=1, numOfRows=1, returnType='json')['response']['body']['totalCount']
+        except NotRegistered:
+            return
+        def safe(p):
+            try:
+                lic_page(svc, p)
+            except QuotaExceeded:
+                raise
+            except Exception:
+                pass
+        try:
+            with ThreadPoolExecutor(4) as ex:
+                list(ex.map(safe, range(1, total // 100 + 2)))
+        except QuotaExceeded:
+            pass
+        print(f'  {LICENSE_SVC[svc]} 내려받기 끝', flush=True)
+    with ThreadPoolExecutor(len(LICENSE_SVC)) as ex:
+        list(ex.map(one, [s for s in LICENSE_SVC if s not in skip]))
+
+
 def licenses():
     regions = json.loads((CACHE / 'regions.json').read_text(encoding='utf-8'))['regions']
     sg_index = sorted(((f'{a} {g["name"]} ' if g['name'] != r['name'] else f'{a} ', cd)
@@ -335,6 +359,8 @@ if __name__ == '__main__':
     try:
         if step in ('stores', 'all'):
             stores(zp)
+        if step == 'fetch':                            # python export.py fetch rest_cafes → 카페 빼고 나머지 업종 동시에
+            fetch_all(sys.argv[2:])
         if step in ('lic', 'all'):
             licenses()
         if step in ('meta', 'all'):
