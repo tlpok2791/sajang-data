@@ -60,11 +60,11 @@ footer{max-width:720px;margin:0 auto;padding:0 16px 40px;font-size:12px;color:va
     <p class="note">거래처가 계속 영업 중인지, 휴업·폐업했는지는 국세청 <b>홈택스</b>에서 로그인 없이 조회할 수 있습니다.</p>
     <div class="row"><input id="bNo" inputmode="numeric" placeholder="사업자등록번호 10자리 (예: 124-81-00998)" maxlength="12"></div>
     <div id="bMsg" class="note" style="min-height:20px"></div>
-    <button class="act" id="bGo">번호 복사하고 홈택스 열기 →</button>
+    <button class="act" id="bGo">번호 복사하고 홈택스 조회 화면 열기 →</button>
     <ol class="note" style="padding-left:18px;margin:10px 0 0">
-      <li>위 버튼을 누르면 번호가 복사되고 홈택스가 새 창으로 열립니다.</li>
-      <li>홈택스 위쪽 검색창에 <b>사업자상태</b>를 입력하거나, [조회/발급] → [사업자상태] → [사업자등록상태조회]로 들어갑니다.</li>
+      <li>위 버튼을 누르면 번호가 복사되고 홈택스 <b>사업자등록상태 조회 화면</b>이 새 창으로 열립니다.</li>
       <li>번호 칸에 <b>붙여넣기</b>(휴대폰은 길게 눌러 붙여넣기, PC는 Ctrl+V) 후 조회를 누릅니다.</li>
+      <li>화면이 다르게 열리면 홈택스 검색창에 <b>사업자상태</b>를 입력하세요.</li>
     </ol>
     <p class="note">폐업·휴업한 거래처에서 받은 세금계산서는 매입세액 공제가 문제될 수 있으니 큰 거래 전에 확인하세요.</p>
   </div>
@@ -500,7 +500,7 @@ function checkBiz(){const d=$('#bNo').value.replace(/\D/g,'');
 $('#bNo').oninput=checkBiz;
 $('#bGo').onclick=async()=>{const d=checkBiz();
   if(d.length===10){try{await navigator.clipboard.writeText(d);$('#bMsg').innerHTML+=' · 번호를 복사했습니다'}catch(e){$('#bMsg').innerHTML+=' · 복사가 안 되면 번호를 직접 입력하세요'}}
-  window.open('https://hometax.go.kr','_blank','noopener')};
+  window.open('https://hometax.go.kr/websquare/websquare.html?w2xPath=/ui/pp/index_pp.xml&tmIdx=43&tm2lIdx=4306000000&tm3lIdx=4306080000','_blank','noopener')};
 
 /* ── 동네 매출 (서울: 상권분석서비스 추정매출·점포, 분기) ── */
 let M=null;
