@@ -10,6 +10,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import requests
+
 HERE = Path(__file__).parent
 SITE = HERE / '.cache' / 'site'                       # gh-pages 작업 폴더 (git 제외)
 FILES = ['index.html', 'tax.js', 'data']
@@ -35,7 +37,12 @@ def main():
     git('add', '-A')
     git('commit', '-q', '-m', '사이트 최신본')
     git('push', '-f', remote, 'gh-pages')
-    print('gh-pages 올림 →', remote)
+    # Pages는 소스 전환 직후 등에 새 빌드를 안 만들 때가 있다(2026-10-10 10분 넘게 옛 화면) → 빌드를 직접 요청
+    tok = subprocess.run(['git', 'credential', 'fill'], input='protocol=https\nhost=github.com\n\n', capture_output=True, text=True).stdout
+    tok = next((l[9:] for l in tok.splitlines() if l.startswith('password=')), '')
+    repo = remote.removesuffix('.git').split('github.com/')[1]
+    r = requests.post(f'https://api.github.com/repos/{repo}/pages/builds', headers={'Authorization': f'Bearer {tok}'}, timeout=30)
+    print('gh-pages 올림 →', remote, '| 빌드 요청', r.status_code)
 
 
 if __name__ == '__main__':
