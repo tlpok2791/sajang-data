@@ -3,6 +3,7 @@
 // 부가세법 42조(의제매입), 46조(신용카드 발행세액공제 2026.12.31까지 1.3%·연 1천만원), 63조·69조, 시행령 111조②.
 // 단순화(화면에도 표시): 의제매입 한도(령 84조)·감가상각·세액공제감면·최저한세·가산세는 반영하지 않는다.
 const Tax = (() => {
+  const { WHT_ROWS, WHT_10M } = typeof module !== 'undefined' ? require('./wht_table.js') : globalThis;
   const VA_RATE = { 음식점업: .15, 소매업: .15, 제조업: .20, 숙박업: .25, '건설·운수·정보통신': .30, '금융·전문서비스·부동산': .40, '그 밖의 서비스업': .30 };
 
   function progressive(base, table) {           // table: [[상한, 누적세액, 초과분 세율]] 오름차순
@@ -78,6 +79,26 @@ const Tax = (() => {
     return { pensionBase: base, rows, worker, employer, net: pay - worker };
   }
 
-  return { VA_RATE, incomeTax, corpTax, vatGeneral, vatSimple, income, corp, insurance };
+  // 근로소득 원천징수(매월) — 간이세액표. pay: 월급여(비과세 제외, 원), family: 공제대상가족 수(본인 포함), kids: 8~20세 자녀 수
+  function withholding(pay, family = 1, kids = 0) {
+    const k = pay / 1000, col = f => {                                 // 가족 수별 세액 (11명 초과는 별표 2 제4호)
+      const at = r => f <= 11 ? r[f - 1] : Math.max(0, r[10] - (r[9] - r[10]) * (f - 11));
+      if (k < 770) return 0;
+      if (k < 10000) return at(WHT_ROWS.find(r => k >= r[0] && k < r[1]).slice(2));
+      const base = at(WHT_10M), x = pay - 1e7;                         // 1,000만원 초과: 별표 2 계산식
+      if (k <= 10000) return base;                                    // 정확히 1,000만원은 '10,000천원' 행
+      if (k <= 14000) return base + x * .98 * .35 + 25000;
+      if (k <= 28000) return base + 1397000 + (pay - 14e6) * .98 * .38;
+      if (k <= 30000) return base + 6610600 + (pay - 28e6) * .98 * .40;
+      if (k <= 45000) return base + 7394600 + (pay - 30e6) * .40;
+      if (k <= 87000) return base + 13394600 + (pay - 45e6) * .42;
+      return base + 31034600 + (pay - 87e6) * .45;
+    };
+    const kidCut = kids <= 0 ? 0 : kids === 1 ? 20830 : 45830 + 33330 * (kids - 2);
+    const tax = Math.max(0, Math.floor((col(Math.max(1, family)) - kidCut) / 10 + 1e-7) * 10);   // 10원 미만 절사
+    return { tax, local: Math.floor(tax * .1 / 10 + 1e-7) * 10 };
+  }
+
+  return { VA_RATE, incomeTax, corpTax, vatGeneral, vatSimple, income, corp, insurance, withholding };
 })();
 if (typeof module !== 'undefined') module.exports = Tax;

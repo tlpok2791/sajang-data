@@ -14,7 +14,7 @@ import requests
 
 HERE = Path(__file__).parent
 SITE = HERE / '.cache' / 'site'                       # gh-pages 작업 폴더 (git 제외)
-FILES = ['index.html', 'tax.js', 'data']
+FILES = ['index.html', 'tax.js', 'wht_table.js', 'data']
 
 
 def git(*a, cwd=SITE):

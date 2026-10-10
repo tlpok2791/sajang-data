@@ -41,4 +41,13 @@ eq(n.worker, 142500 + 107850 + 14170 + 27000, '근로자 합계');
 eq(T.insurance(1e7).pensionBase, 659e4, '국민연금 상한 659만원');
 eq(T.insurance(3e5).pensionBase, 41e4, '국민연금 하한 41만원');
 eq(T.insurance(3e6, { size: 'ge1000' }).rows[3][2], 52500, '1천명 이상 사업주 0.9%+0.85% = 300만×1.75%');
+// 근로소득 간이세액표 (2026 원문과 대조한 값)
+eq(T.withholding(2005000, 1).tax, 19520, '월 200.5만 본인1명 = 19,520');
+eq(T.withholding(2005000, 1).local, 1950, '지방소득세 10%');
+eq(T.withholding(2985000, 10).tax, 3070, '월 298.5만 가족10명');
+eq(T.withholding(700000, 1).tax, 0, '77만원 미만 0');
+eq(T.withholding(2805000, 2, 1).tax, 39300 - 20830, '자녀 1명 20,830원 공제');
+eq(T.withholding(2805000, 3, 3).tax, Math.max(0, 25180 - (45830 + 33330)), '자녀 3명, 음수면 0');
+eq(T.withholding(1e7, 1).tax, 1507400, '1,000만원 정확히 = 10,000천원 행');
+eq(T.withholding(12e6, 1).tax, Math.floor((1507400 + 2e6 * .98 * .35 + 25000) / 10) * 10, '1,200만원 = 1천만 세액 + 초과분×98%×35% + 2.5만');
 console.log('tax_test OK');

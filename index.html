@@ -35,7 +35,7 @@ td:first-child{white-space:nowrap}.scroll{overflow-x:auto;margin:0 -4px}.grid in
 
 footer{max-width:720px;margin:0 auto;padding:0 16px 40px;font-size:12px;color:var(--sub);line-height:1.7}</style></head><body>
 <header><h1>사장님 데이터 비서</h1><p>공공데이터로 보는 우리 동네 상권 · 세금 일정 · 예상 세금 | 세정회계법인 서동희 회계사</p>
-<nav><button data-t="area" class="on">우리 동네 상권</button><button data-t="cal">세금 일정</button><button data-t="tax">예상 세금</button><button data-t="ins">4대보험</button><button data-t="biz">거래처 확인</button></nav></header>
+<nav><button data-t="area" class="on">우리 동네 상권</button><button data-t="cal">세금 일정</button><button data-t="tax">예상 세금</button><button data-t="ins">급여·4대보험</button><button data-t="biz">거래처 확인</button></nav></header>
 <main>
 
 <section id="area">
@@ -100,17 +100,19 @@ footer{max-width:720px;margin:0 auto;padding:0 16px 40px;font-size:12px;color:va
 </section>
 
 <section id="ins" class="hide">
-  <div class="card"><h2>4대보험 계산기 (2026년)</h2>
-    <p class="note">직원 한 명의 <b>월 급여(비과세 수당을 뺀 금액)</b>를 넣으면 근로자 공제액과 사업주 부담액을 계산합니다.</p>
-    <div class="row"><label class="note">월 급여 (원)<input id="iPay" inputmode="numeric" placeholder="예: 3,000,000"></label><label class="note">같은 급여 직원 수<input id="iHeads" inputmode="numeric" placeholder="1"></label></div>
+  <div class="card"><h2>급여 · 4대보험 계산기 (2026년)</h2>
+    <p class="note">직원마다 <b>월 급여(식대 등 비과세를 뺀 금액)</b>, 공제대상 가족 수(본인 포함), 8~20세 자녀 수를 넣으세요. 4대보험, 근로소득세·지방소득세, 세후 실수령액, 사업주 부담을 한 번에 계산합니다.</p>
+    <div class="scroll"><table class="grid" id="eGrid"></table></div>
+    <div class="row" style="margin-top:8px"><button class="act" id="eAdd" style="background:var(--navy2)">+ 직원 추가</button></div>
     <div class="row"><label class="note">회사 규모 (고용보험)<select id="iSize"><option value="lt150">상시근로자 150명 미만</option><option value="priority">150명 이상 · 우선지원대상기업</option><option value="lt1000">150~999명</option><option value="ge1000">1,000명 이상</option></select></label>
       <label class="note">산재보험료율 % (근로복지공단 고지 요율)<input id="iInj" inputmode="decimal" placeholder="예: 0.9"></label></div>
     <div id="iOut"></div>
-    <p class="note">2026년 요율: 국민연금 9.5%(각 4.75%, 기준소득월액 41만~659만 원), 건강보험 7.19%(각 3.595%), 장기요양 보수의 0.9448%(각 절반), 고용보험 실업급여 1.8%(각 0.9%) + 사업주 고용안정 0.25~0.85%, 산재보험은 업종별 요율로 사업주 전액. 건강보험 보수 상·하한, 두루누리 지원, 대표자 본인 가입은 반영하지 않은 추정치입니다.</p>
+    <p class="note">근로소득세는 근로소득 간이세액표(소득세법 시행령 별표 2, 2026.2.27 개정) 100% 기준이고, 지방소득세는 그 10%입니다. 4대보험 요율: 국민연금 9.5%(각 4.75%, 기준소득월액 41만~659만 원), 건강보험 7.19%(각 3.595%), 장기요양 보수의 0.9448%(각 절반), 고용보험 1.8%(각 0.9%) + 사업주 고용안정 0.25~0.85%, 산재보험은 사업주 전액. 건강보험 보수 상·하한, 두루누리 지원, 60세 이상 국민연금 제외, 대표자 본인은 반영하지 않은 추정치입니다.</p>
   </div>
 </section>
 </main>
 <footer id="foot"></footer>
+<script src="wht_table.js"></script>
 <script src="tax.js"></script>
 <script>
 const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -330,22 +332,41 @@ $('#tyear').addEventListener('change',drawSimple);$('#tind').addEventListener('i
 if(qs.get('demo')&&!sRows().some(r=>r.sales)){sRows().forEach((r,i)=>{if(i<9){r.sales=1800+i*50;r.exp=1350}});}   // 시연: 음식점 1~9월
 drawSimple();setMode(T.mode||'simple');
 
-/* ── 4대보험 ── */
-const IK=['iPay','iHeads','iSize','iInj'];let I={};try{I=JSON.parse(localStorage.getItem('ins')||'{}')}catch(e){}
-IK.forEach(k=>{if(I[k]!=null)$('#'+k).value=I[k];$('#'+k).addEventListener('input',()=>{I[k]=$('#'+k).value;try{localStorage.setItem('ins',JSON.stringify(I))}catch(e){}calcIns()})});
-$('#iPay').addEventListener('blur',()=>{const v=num($('#iPay').value);if(v)$('#iPay').value=won(v)});
-if(qs.get('demo')&&!I.iPay){I.iPay='3,000,000';I.iInj='0.9';$('#iPay').value=I.iPay;$('#iInj').value=I.iInj}
-function calcIns(){
-  const pay=num($('#iPay').value),heads=Math.max(1,num($('#iHeads').value)||1),inj=parseFloat(String($('#iInj').value).replace(/[^\d.]/g,''))||0;
-  if(!pay){$('#iOut').innerHTML='<p class="load">월 급여를 넣으면 바로 계산됩니다.</p>';return}
-  const r=Tax.insurance(pay,{size:$('#iSize').value,injury:inj/100});
-  $('#iOut').innerHTML=`<div class="kpis" style="margin-top:6px"><div class="kpi"><span>직원 실수령 (세금 전)</span><b>${won(r.net)}</b></div><div class="kpi"><span>사업주 부담 / 월${heads>1?' · '+heads+'명':''}</span><b>${won(r.employer*heads)}</b></div><div class="kpi"><span>1인 총 인건비 / 월</span><b>${won(pay+r.employer)}</b></div></div>
-   <table class="res" style="margin-top:8px"><tr><th>항목</th><th style="text-align:right">근로자</th><th style="text-align:right">사업주</th></tr>
-   ${r.rows.map(([n,w,e])=>`<tr><td>${n}</td><td style="text-align:right">${won(w)}</td><td>${won(e)}</td></tr>`).join('')}
-   <tr class="sum"><td>1인 합계</td><td style="text-align:right">${won(r.worker)}</td><td>${won(r.employer)}</td></tr>
-   ${heads>1?`<tr class="sum"><td>${heads}명 합계</td><td style="text-align:right">${won(r.worker*heads)}</td><td>${won(r.employer*heads)}</td></tr>`:''}</table>
-   <p class="note">국민연금 기준소득월액 ${won(r.pensionBase)}원 적용${inj?'':' · 산재보험료율을 넣으면 산재보험도 계산합니다'}. 연간 사업주 부담 약 ${man(r.employer*heads*12)}.</p>`;
+/* ── 급여·4대보험 (직원별) ── */
+let I={};try{I=JSON.parse(localStorage.getItem('ins')||'{}')}catch(e){}
+if(!Array.isArray(I.emps))I.emps=[{name:'',pay:I.iPay?num(I.iPay):'',fam:1,kids:0}];       // 예전 1인 입력값 이어받기
+const isave=()=>{try{localStorage.setItem('ins',JSON.stringify(I))}catch(e){}};
+['iSize','iInj'].forEach(k=>{if(I[k]!=null)$('#'+k).value=I[k];$('#'+k).addEventListener('input',()=>{I[k]=$('#'+k).value;isave();calcIns()})});
+if(qs.get('demo')&&!I.emps.some(e=>e.pay)){I.emps=[{name:'점장',pay:3500000,fam:3,kids:1},{name:'주방',pay:2800000,fam:1,kids:0},{name:'홀',pay:2200000,fam:1,kids:0}];I.iInj='0.9';$('#iInj').value='0.9'}
+function drawEmps(){
+  $('#eGrid').innerHTML=`<tr><th>이름</th><th>월 급여 (원)</th><th>가족 수</th><th>자녀(8~20세)</th><th></th></tr>`+I.emps.map((e,i)=>`<tr>
+    <td><input data-i="${i}" data-k="name" value="${esc(e.name||'')}" placeholder="직원${i+1}" style="width:72px;text-align:left"></td>
+    <td><input data-i="${i}" data-k="pay" inputmode="numeric" value="${e.pay?won(e.pay):''}" placeholder="3,000,000" style="width:110px"></td>
+    <td><input data-i="${i}" data-k="fam" inputmode="numeric" value="${e.fam??1}" style="width:48px"></td>
+    <td><input data-i="${i}" data-k="kids" inputmode="numeric" value="${e.kids??0}" style="width:48px"></td>
+    <td><button data-del="${i}" style="border:0;background:none;color:var(--sub);font-size:18px">×</button></td></tr>`).join('');
+  $('#eGrid').querySelectorAll('input').forEach(el=>{
+    el.oninput=()=>{const e=I.emps[el.dataset.i],k=el.dataset.k;e[k]=k==='name'?el.value:num(el.value);isave();calcIns()};
+    if(el.dataset.k==='pay')el.onblur=()=>{el.value=num(el.value)?won(num(el.value)):''};
+  });
+  $('#eGrid').querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{I.emps.splice(+b.dataset.del,1);if(!I.emps.length)I.emps.push({fam:1,kids:0});isave();drawEmps();calcIns()});
 }
+$('#eAdd').onclick=()=>{I.emps.push({name:'',pay:'',fam:1,kids:0});isave();drawEmps()};
+function calcIns(){
+  const inj=(parseFloat(String($('#iInj').value).replace(/[^\d.]/g,''))||0)/100,size=$('#iSize').value;
+  const rs=I.emps.filter(e=>num(e.pay)>0).map((e,i)=>{const pay=num(e.pay),r=Tax.insurance(pay,{size,injury:inj}),w=Tax.withholding(pay,Math.max(1,num(e.fam)||1),num(e.kids)||0);
+    return {name:e.name||`직원${I.emps.indexOf(e)+1}`,pay,ins:r.worker,tax:w.tax,local:w.local,net:pay-r.worker-w.tax-w.local,emp:r.employer,rows:r.rows}});
+  if(!rs.length){$('#iOut').innerHTML='<p class="load">직원 월 급여를 넣으면 바로 계산됩니다.</p>';return}
+  const S=k=>rs.reduce((s,r)=>s+r[k],0);
+  $('#iOut').innerHTML=`<div class="kpis" style="margin-top:6px"><div class="kpi"><span>직원 ${rs.length}명 세후 실수령 합계</span><b>${won(S('net'))}</b></div><div class="kpi"><span>사업주 4대보험 부담 / 월</span><b>${won(S('emp'))}</b></div><div class="kpi"><span>총 인건비 / 월 (급여+사업주 부담)</span><b>${won(S('pay')+S('emp'))}</b></div></div>
+   <div class="scroll"><table class="res" style="margin-top:8px;min-width:560px"><tr><th>이름</th><th style="text-align:right">급여</th><th style="text-align:right">4대보험</th><th style="text-align:right">소득세</th><th style="text-align:right">지방소득세</th><th style="text-align:right">세후 실수령</th><th style="text-align:right">사업주 부담</th></tr>
+   ${rs.map(r=>`<tr><td>${esc(r.name)}</td><td style="text-align:right">${won(r.pay)}</td><td style="text-align:right">${won(r.ins)}</td><td style="text-align:right">${won(r.tax)}</td><td style="text-align:right">${won(r.local)}</td><td style="text-align:right"><b>${won(r.net)}</b></td><td>${won(r.emp)}</td></tr>`).join('')}
+   <tr class="sum"><td>합계</td><td style="text-align:right">${won(S('pay'))}</td><td style="text-align:right">${won(S('ins'))}</td><td style="text-align:right">${won(S('tax'))}</td><td style="text-align:right">${won(S('local'))}</td><td style="text-align:right">${won(S('net'))}</td><td>${won(S('emp'))}</td></tr></table></div>
+   <details><summary>4대보험 항목별 보기</summary><div class="scroll"><table class="res" style="min-width:420px"><tr><th>항목</th><th style="text-align:right">근로자 합계</th><th style="text-align:right">사업주 합계</th></tr>
+   ${rs[0].rows.map((row,k)=>`<tr><td>${row[0]}</td><td style="text-align:right">${won(rs.reduce((s,r)=>s+r.rows[k][1],0))}</td><td>${won(rs.reduce((s,r)=>s+r.rows[k][2],0))}</td></tr>`).join('')}</table></div></details>
+   <p class="note">매달 원천세 신고·납부(다음 달 10일): 소득세 ${won(S('tax'))}원 + 지방소득세 ${won(S('local'))}원. 연간 사업주 4대보험 부담 약 ${man(S('emp')*12)}${inj?'':' · 산재보험료율을 넣으면 산재보험도 계산합니다'}.</p>`;
+}
+drawEmps();
 
 initArea().then(()=>{if(qs.get('tab'))document.querySelector(`nav button[data-t="${qs.get('tab')}"]`)?.click()});
 </script></body></html>
