@@ -89,4 +89,8 @@ eq(T.inheritTax({ estate: 20e8, finNet: 5e8, kids: 1 }).fin, 1e8, '금융재산 
 eq(T.residentBiz({ kind: '개인' }).total, 5e4, '개인 사업소분 5만원');
 eq(T.residentBiz({ kind: '법인', capital: 40e8 }).total, 1e5, '자본금 30억 초과 50억 이하 10만원');
 eq(T.residentBiz({ kind: '개인', area: 400 }).total, 5e4 + 400 * 250, '연면적 330㎡ 초과: ㎡당 250원');
+// 사업자등록번호 검증 (삼성전자 124-81-00998 — 국세청 상태조회로 실재 확인한 번호)
+eq(T.bizNoValid('124-81-00998'), true, '실제 사업자번호 검증 통과');
+eq(T.bizNoValid('124-81-00997'), false, '끝자리 틀리면 실패');
+eq(T.bizNoValid('12345'), false, '자릿수 부족');
 console.log('tax_test OK');

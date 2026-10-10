@@ -163,6 +163,15 @@ const Tax = (() => {
     return { basic, byArea, total: basic + byArea };
   }
 
-  return { VA_RATE, incomeTax, corpTax, vatGeneral, vatSimple, income, corp, insurance, withholding, transferTax, giftTax, inheritTax, residentBiz };
+  // 사업자등록번호 검증번호(10번째 자리) — 가중치 1,3,7,1,3,7,1,3,5 + 9번째×5의 십의 자리
+  function bizNoValid(no) {
+    const d = String(no).replace(/\D/g, '');
+    if (d.length !== 10) return false;
+    const w = [1, 3, 7, 1, 3, 7, 1, 3, 5];
+    let s = w.reduce((a, x, i) => a + x * +d[i], 0) + Math.floor(+d[8] * 5 / 10);
+    return (10 - s % 10) % 10 === +d[9];
+  }
+
+  return { VA_RATE, incomeTax, corpTax, vatGeneral, vatSimple, income, corp, insurance, withholding, transferTax, giftTax, inheritTax, residentBiz, bizNoValid };
 })();
 if (typeof module !== 'undefined') module.exports = Tax;

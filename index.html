@@ -53,9 +53,16 @@ footer{max-width:720px;margin:0 auto;padding:0 16px 40px;font-size:12px;color:va
 
 <section id="biz" class="hide">
   <div class="card"><h2>거래처 사업자 상태 확인</h2>
-    <p>거래처가 계속 영업 중인지, 휴업·폐업했는지는 <b>홈택스</b>에서 바로 조회할 수 있습니다. 로그인 없이 사업자등록번호만 넣으면 됩니다.</p>
-    <a class="act" style="display:block;text-align:center;padding:12px;border-radius:8px;background:var(--navy);color:#fff;font-weight:700;text-decoration:none" href="https://hometax.go.kr" target="_blank" rel="noopener">홈택스 열기 →</a>
-    <p class="note">홈택스 첫 화면에서 [조회/발급] → [사업자상태] → [사업자등록상태조회]로 들어가세요. 폐업·휴업한 거래처의 세금계산서는 매입세액 공제가 문제될 수 있으니 큰 거래 전에 확인하세요.</p>
+    <p class="note">거래처가 계속 영업 중인지, 휴업·폐업했는지는 국세청 <b>홈택스</b>에서 로그인 없이 조회할 수 있습니다.</p>
+    <div class="row"><input id="bNo" inputmode="numeric" placeholder="사업자등록번호 10자리 (예: 124-81-00998)" maxlength="12"></div>
+    <div id="bMsg" class="note" style="min-height:20px"></div>
+    <button class="act" id="bGo">번호 복사하고 홈택스 열기 →</button>
+    <ol class="note" style="padding-left:18px;margin:10px 0 0">
+      <li>위 버튼을 누르면 번호가 복사되고 홈택스가 새 창으로 열립니다.</li>
+      <li>홈택스 위쪽 검색창에 <b>사업자상태</b>를 입력하거나, [조회/발급] → [사업자상태] → [사업자등록상태조회]로 들어갑니다.</li>
+      <li>번호 칸에 <b>붙여넣기</b>(휴대폰은 길게 눌러 붙여넣기, PC는 Ctrl+V) 후 조회를 누릅니다.</li>
+    </ol>
+    <p class="note">폐업·휴업한 거래처에서 받은 세금계산서는 매입세액 공제가 문제될 수 있으니 큰 거래 전에 확인하세요.</p>
   </div>
 </section>
 
@@ -480,6 +487,15 @@ function calcAll(){
 if(qs.get('demo')&&!C.gPrice){Object.assign(C,{gKind:'building',gYears:'5',gPrice:'50000',gCost:'30000',gExp:'1000',gInc:true,fAmt:'10000',fInc:true,rbOn:true});   // 시연값
   CK.forEach(k=>{const el=$('#'+k);if(C[k]!=null){if(el.type==='checkbox')el.checked=C[k];else el.value=C[k]}})}
 subTab(qs.get('sub')||C.tab||'pay');giTab(C.gi||'gift');calcCg();
+
+/* ── 거래처 확인: 검증번호 확인 + 복사 후 홈택스 ── */
+const fmtBiz=d=>d.length===10?`${d.slice(0,3)}-${d.slice(3,5)}-${d.slice(5)}`:d;
+function checkBiz(){const d=$('#bNo').value.replace(/\D/g,'');
+  $('#bMsg').innerHTML=!d?'':d.length<10?`${d.length}/10자리`:Tax.bizNoValid(d)?'<span style="color:#1f7a4d">✓ 형식이 올바른 사업자등록번호입니다</span>':'<span style="color:var(--orange)">✗ 검증번호가 맞지 않습니다. 번호를 다시 확인하세요</span>';return d}
+$('#bNo').oninput=checkBiz;
+$('#bGo').onclick=async()=>{const d=checkBiz();
+  if(d.length===10){try{await navigator.clipboard.writeText(d);$('#bMsg').innerHTML+=' · 번호를 복사했습니다'}catch(e){$('#bMsg').innerHTML+=' · 복사가 안 되면 번호를 직접 입력하세요'}}
+  window.open('https://hometax.go.kr','_blank','noopener')};
 
 initArea().then(()=>{if(qs.get('tab'))document.querySelector(`nav button[data-t="${qs.get('tab')}"]`)?.click()});
 </script></body></html>
