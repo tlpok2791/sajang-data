@@ -5,7 +5,9 @@
 그래서 gh-pages는 매번 기록 없는 새 커밋 하나로 덮어쓴다(force push). 코드 기록은 main 브랜치에 그대로 남는다.
   python publish.py
 """
+import os
 import shutil
+import stat
 import subprocess
 import sys
 from pathlib import Path
@@ -13,7 +15,7 @@ from pathlib import Path
 import requests
 
 HERE = Path(__file__).parent
-SITE = HERE / '.cache' / 'site'                       # gh-pages 작업 폴더 (git 제외)
+SITE = Path(os.environ.get('LOCALAPPDATA', Path.home())) / 'sajang-data-cache' / 'site'   # gh-pages 작업 폴더 (OneDrive 밖: 동기화가 파일을 잡지 않게)
 FILES = ['index.html', 'tax.js', 'wht_table.js', 'data']
 
 
@@ -24,7 +26,8 @@ def git(*a, cwd=SITE):
 def main():
     assert (HERE / 'data' / 'meta.json').exists(), 'data/meta.json 이 없습니다. export.py 를 먼저 실행하세요.'
     remote = subprocess.run(['git', 'remote', 'get-url', 'origin'], cwd=HERE, capture_output=True, text=True, check=True).stdout.strip()
-    shutil.rmtree(SITE, ignore_errors=True)
+    if SITE.exists():                                   # git 객체 파일은 읽기 전용이라 권한을 풀고 지운다
+        shutil.rmtree(SITE, onexc=lambda f, p, e: (os.chmod(p, stat.S_IWRITE), f(p)))
     SITE.mkdir(parents=True)
     for f in FILES:
         src = HERE / f
