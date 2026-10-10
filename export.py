@@ -249,11 +249,23 @@ def licenses():
             status[svc] = '활용신청 필요'
             continue
         pages = range(1, total // 100 + 2)
+        def safe(p):                                    # 한 쪽이 계속 실패해도 전체를 멈추지 않는다 → 다음 실행 때 다시 받음
+            try:
+                lic_page(svc, p)
+                return True
+            except RuntimeError:
+                return False
         try:
+            failed = 0
             with ThreadPoolExecutor(4) as ex:
-                for i, _ in enumerate(ex.map(lambda p: lic_page(svc, p), pages), 1):
+                for i, ok in enumerate(ex.map(safe, pages), 1):
+                    failed += not ok
                     if i % 500 == 0:
-                        print(f'  {label} {i}/{len(pages)}쪽', flush=True)
+                        print(f'  {label} {i}/{len(pages)}쪽 (실패 {failed})', flush=True)
+            if failed:
+                status[svc] = f'수집 중 (빠진 쪽 {failed})'
+                print(f'{label}: {failed}쪽을 못 받았습니다. 다시 실행하면 빠진 쪽만 받습니다.', flush=True)
+                continue
         except QuotaExceeded:
             got = len(list((LCACHE / MONTH / svc).glob('*.json')))
             status[svc] = f'수집 중 {got}/{len(pages)}쪽'           # 덜 받은 업종은 앱에 올리지 않는다 (내일 이어서)
