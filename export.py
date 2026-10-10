@@ -260,13 +260,15 @@ def fetch_all(skip=()):
         list(ex.map(one, [s for s in LICENSE_SVC if s not in skip]))
 
 
-def licenses():
+def licenses(only=()):
     regions = json.loads((CACHE / 'regions.json').read_text(encoding='utf-8'))['regions']
     sg_index = sorted(((f'{a} {g["name"]} ' if g['name'] != r['name'] else f'{a} ', cd)
                        for r in regions.values() for cd, g in r['signgu'].items() for a in SIDO_ALIAS.get(r['name'], [r['name']])),
                       key=lambda t: -len(t[0]))
     status, summary = {}, []
     for svc, label in LICENSE_SVC.items():
+        if only and svc not in only:
+            continue
         try:
             total = get(LOCAL.format(svc), pageNo=1, numOfRows=1, returnType='json')['response']['body']['totalCount']
         except NotRegistered:
@@ -362,7 +364,7 @@ if __name__ == '__main__':
         if step == 'fetch':                            # python export.py fetch rest_cafes → 카페 빼고 나머지 업종 동시에
             fetch_all(sys.argv[2:])
         if step in ('lic', 'all'):
-            licenses()
+            licenses(sys.argv[2:] if step == 'lic' else ())                   # python export.py lic bakeries clinics → 그 업종만
         if step in ('meta', 'all'):
             meta()
     except QuotaExceeded as e:
