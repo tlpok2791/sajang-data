@@ -253,7 +253,9 @@ def licenses():
             try:
                 lic_page(svc, p)
                 return True
-            except RuntimeError:
+            except QuotaExceeded:
+                raise
+            except Exception:                          # 계속 실패·이상한 응답 형식(KeyError 등) 모두 이 쪽만 건너뜀
                 return False
         try:
             failed = 0
