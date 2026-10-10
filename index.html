@@ -166,9 +166,17 @@ function drawStores(){
    <h3>세부 업종</h3>${bars(count(a,x=>x.indsSclsNm).slice(0,12))}
    <h3>상호 찾기</h3><input id="q" placeholder="상호 검색"><div id="list"></div>
    <p class="note">소상공인시장진흥공단 상가(상권)정보 · ${META.updated} 기준 영업 중인 점포</p>`;
-  const list=()=>{const q=$('#q').value.trim(),r=a.filter(x=>!q||(x.bizesNm+(x.brchNm||'')).includes(q));
-    $('#list').innerHTML=`<table><tr><th>상호</th><th>업종</th><th>주소</th></tr>${r.slice(0,20).map(x=>`<tr><td>${esc(x.bizesNm)} ${esc(x.brchNm||'')}</td><td><span class="tag">${esc(x.indsSclsNm)}</span></td><td>${esc(x.rdnmAdr)}${x.flrNo?' '+esc(x.flrNo)+'층':''}</td></tr>`).join('')}</table>${r.length>20?`<p class="note">${r.length}곳 중 20곳 표시 · 검색으로 좁히세요</p>`:''}`};
-  $('#q').oninput=list;list();
+  const PER=20;let pg=0;                                   // 상호 목록: 20곳씩 페이지
+  const list=()=>{const q=$('#q').value.trim(),r=a.filter(x=>!q||(x.bizesNm+(x.brchNm||'')).includes(q)),n=Math.max(1,Math.ceil(r.length/PER));
+    pg=Math.min(pg,n-1);
+    const lo=Math.max(0,Math.min(pg-2,n-5)),nums=Array.from({length:Math.min(5,n)},(_,i)=>lo+i);   // 현재 쪽 주변 5개 번호
+    const btn=(p,t,on,dis)=>`<button data-pg="${p}" ${dis?'disabled':''} style="min-width:34px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font:inherit;background:${on?'var(--navy)':'#fff'};color:${on?'#fff':dis?'#c5cad6':'var(--ink)'}">${t}</button>`;
+    $('#list').innerHTML=`<table><tr><th>상호</th><th>업종</th><th>주소</th></tr>${r.slice(pg*PER,pg*PER+PER).map(x=>`<tr><td>${esc(x.bizesNm)} ${esc(x.brchNm||'')}</td><td><span class="tag">${esc(x.indsSclsNm)}</span></td><td>${esc(x.rdnmAdr)}${x.flrNo?' '+esc(x.flrNo)+'층':''}</td></tr>`).join('')||'<tr><td colspan="3">검색 결과가 없습니다</td></tr>'}</table>
+     ${n>1?`<div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap;margin:10px 0 4px">${btn(pg-1,'‹',0,pg===0)}${nums.map(p=>btn(p,p+1,p===pg)).join('')}${btn(pg+1,'›',0,pg===n-1)}</div>`:''}
+     <p class="note" style="text-align:center">${r.length.toLocaleString()}곳 중 ${r.length?pg*PER+1:0}~${Math.min(r.length,pg*PER+PER)}번째${n>1?` · ${pg+1}/${n}쪽`:''}</p>`;
+    $('#list').querySelectorAll('[data-pg]').forEach(b=>b.onclick=()=>{pg=+b.dataset.pg;list();$('#q').scrollIntoView({block:'start'})});
+  };
+  $('#q').oninput=()=>{pg=0;list()};list();
 }
 
 /* ── 인허가 (export.py가 법정동별로 미리 집계한 파일) ── */
