@@ -63,6 +63,8 @@ footer{max-width:720px;margin:0 auto;padding:0 16px 40px;font-size:12px;color:va
     <div class="row"><select id="svc"></select><select id="bz"></select></div>
     <div id="lBody" class="load">지역을 고르세요</div>
   </div>
+  <div class="card hide" id="trCard"><h2>상가 · 사무실 매매 실거래</h2><div id="trBody" class="load">지역을 고르세요</div>
+  </div>
 </section>
 
 <section id="biz" class="hide">
@@ -227,7 +229,20 @@ async function onAdong(){pref.adong=$('#adong').value;save();if(!pref.adong)retu
   D=await data(`dong/${pref.adong}.json`);
   S=D.stores.map(x=>({bizesNm:x.n,brchNm:x.b,indsLclsNm:x.l,indsMclsNm:x.m,indsSclsNm:x.s,rdnmAdr:x.a,flrNo:x.f}));
   const l=[...new Set(S.map(x=>x.indsLclsNm))].sort();opts($('#lcls'),l.map(x=>[x,x]));
-  $('#lcls').value=l.includes(pref.lcls)?pref.lcls:(l.includes('음식')?'음식':l[0]);drawStores();loadLic();loadSales();
+  $('#lcls').value=l.includes(pref.lcls)?pref.lcls:(l.includes('음식')?'음식':l[0]);drawStores();loadLic();loadSales();loadTrade();
+}
+async function loadTrade(){
+  if(META.trade?.status!=='ok')return;            // 활용신청 승인·수집 전에는 카드를 숨긴다
+  $('#trCard').classList.remove('hide');
+  const T=await data(`trade/${pref.signgu}.json`);
+  if(!T||!T.deals.length){$('#trBody').innerHTML='<p class="load">최근 12개월 신고된 거래가 없습니다.</p>';return}
+  const mine=T.deals.filter(x=>D.ldongs.includes(x.dong)),rows=(mine.length?mine:T.deals).slice(0,30);
+  const per=T.deals.filter(x=>x.area>0&&/근린생활/.test(x.use)&&x.type==='집합').map(x=>x.price/x.area).sort((a,b)=>a-b);
+  const med=per.length?per[per.length>>1]:0;
+  $('#trBody').innerHTML=`<div class="kpis"><div class="kpi"><span>${esc(D.signgu)} 12개월 거래</span><b>${T.deals.length.toLocaleString()}건</b></div><div class="kpi"><span>${esc(D.ldongs.join('·'))} 거래</span><b>${mine.length}건</b></div><div class="kpi"><span>집합 근린생활 ㎡당 중위가</span><b>${med?man(med*1e4):'-'}</b></div></div>
+   <div class="scroll"><table class="res" style="margin-top:8px;min-width:520px"><tr><th>계약일</th><th>법정동</th><th>용도</th><th>층</th><th style="text-align:right">면적 ㎡</th><th style="text-align:right">거래금액</th></tr>
+   ${rows.map(x=>`<tr><td>${esc(x.d)}</td><td>${esc(x.dong)}</td><td>${esc(x.use)} <span class="tag">${esc(x.type)}</span></td><td>${esc(x.floor)}</td><td>${x.area.toLocaleString()}</td><td>${man(x.price*1e4)}</td></tr>`).join('')}</table></div>
+   <p class="note">${mine.length?'이 행정동이 속한 법정동 거래만, ':'이 동네 거래가 없어 시군구 전체를, '}최근 것부터 30건까지 보여 줍니다. 자료: 국토교통부 상업업무용 부동산 매매 실거래가(${esc(T.months[0])}~${esc(T.months.at(-1))}, 해제 거래 제외). 신고 기한이 계약 후 30일이라 최근 달은 덜 잡힙니다. 지번은 공개되지 않습니다.</p>`;
 }
 $('#lcls').onchange=()=>{pref.lcls=$('#lcls').value;save();drawStores()};
 const count=(a,f)=>Object.entries(a.reduce((m,x)=>(m[f(x)]=(m[f(x)]||0)+1,m),{})).sort((a,b)=>b[1]-a[1]);

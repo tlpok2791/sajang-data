@@ -102,6 +102,14 @@ def main():
                 changed = True
     except Exception as e:
         log(f'서울 매출 확인 실패: {type(e).__name__}')   # 주소에 키가 있어 메시지 원문은 남기지 않는다
+    try:                                              # 상가·사무실 실거래: 한 달에 한 번 (활용신청 전이면 export.py가 상태만 남김)
+        st = HERE / '.cache' / 'trade_status.json'
+        old = json.loads(st.read_text(encoding='utf-8')) if st.exists() else {}
+        if old.get('month') != dt.date.today().strftime('%Y-%m') and run('export.py', 'trade') == 0:
+            new = json.loads(st.read_text(encoding='utf-8')) if st.exists() else {}
+            changed = changed or new.get('status') == 'ok'
+    except Exception as e:
+        log(f'실거래 확인 실패: {type(e).__name__}')
     before = ok_set()
     run('export.py', 'lic')
     after = ok_set()

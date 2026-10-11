@@ -371,15 +371,58 @@ def holidays(year):
     return sorted(str(x['locdate']) for x in it if x.get('isHoliday') == 'Y')
 
 
+TRADE = 'https://apis.data.go.kr/1613000/RTMSDataSvcNrgTrade/getRTMSDataSvcNrgTrade'   # 국토교통부 상업업무용 부동산 매매 실거래가
+
+
+def trade(months=12):
+    """시군구별 최근 12개월 상가·사무실 매매 → data/trade/{시군구}.json. 활용신청 전이면 상태만 남기고 끝."""
+    regions = json.loads((CACHE / 'regions.json').read_text(encoding='utf-8'))['regions']
+    sgs = [cd for r in regions.values() for cd in r['signgu']]
+    yms = [m.replace('-', '') for m in months_back(months)]
+    try:
+        get(TRADE, LAWD_CD=sgs[0], DEAL_YMD=yms[-1], pageNo=1, numOfRows=1)
+    except NotRegistered:
+        dump(CACHE / 'trade_status.json', {'status': '활용신청 필요'})
+        print('상업업무용 실거래: 활용신청 필요')
+        return
+    f = lambda x, k: str(x.get(k) or '').strip()
+    def one(sg):
+        rows = []
+        for ym in yms:
+            page = 1
+            while True:
+                b = get(TRADE, LAWD_CD=sg, DEAL_YMD=ym, pageNo=page, numOfRows=1000)['response']['body']
+                it = (b.get('items') or {}).get('item') or []
+                for x in (it if isinstance(it, list) else [it]):
+                    if f(x, 'cdealType'):                       # 해제된 거래는 뺀다
+                        continue
+                    rows.append({'d': f'{f(x, "dealYear")}-{int(x["dealMonth"]):02d}-{int(x["dealDay"]):02d}', 'dong': f(x, 'umdNm'),
+                                 'type': f(x, 'buildingType'), 'use': f(x, 'buildingUse'), 'floor': f(x, 'floor'),
+                                 'area': float(f(x, 'buildingAr') or 0), 'land': float(f(x, 'plottageAr') or 0),
+                                 'built': f(x, 'buildYear'), 'price': int(f(x, 'dealAmount').replace(',', '') or 0)})   # 만원
+                if page * 1000 >= int(b.get('totalCount') or 0):
+                    break
+                page += 1
+        rows.sort(key=lambda r: r['d'], reverse=True)
+        dump(OUT / 'trade' / f'{sg}.json', {'months': months_back(months), 'deals': rows})
+        return len(rows)
+    with ThreadPoolExecutor(4) as ex:
+        n = sum(ex.map(one, sgs))
+    dump(CACHE / 'trade_status.json', {'status': 'ok', 'month': MONTH, 'deals': n})
+    print(f'상업업무용 실거래: 시군구 {len(sgs)}곳, {n:,}건')
+
+
 def meta():
     today = dt.date.today()
     reg = json.loads((CACHE / 'regions.json').read_text(encoding='utf-8'))
     lic = json.loads((CACHE / 'lic_status.json').read_text(encoding='utf-8'))
     hol = {str(y): holidays(str(y)) for y in (today.year, today.year + 1)}
+    tr = CACHE / 'trade_status.json'
+    trade_st = json.loads(tr.read_text(encoding='utf-8')) if tr.exists() else {'status': '활용신청 필요'}
     b = reg.get('basis', '')
     dump(OUT / 'meta.json', {'updated': today.isoformat(), 'stores_basis': f'{b[:4]}-{b[4:]}' if b else '',
-                             'regions': reg['regions'], 'license_services': LICENSE_SVC, 'license_status': lic['status'], 'holidays': hol,
-                             'sources': ['소상공인시장진흥공단 상가(상권)정보', '행정안전부 지방행정 인허가 데이터'] + (['한국천문연구원 특일정보'] if any(hol.values()) else [])})
+                             'regions': reg['regions'], 'license_services': LICENSE_SVC, 'license_status': lic['status'], 'holidays': hol, 'trade': trade_st,
+                             'sources': ['소상공인시장진흥공단 상가(상권)정보', '행정안전부 지방행정 인허가 데이터'] + (['한국천문연구원 특일정보'] if any(hol.values()) else []) + (['국토교통부 상업업무용 부동산 실거래가'] if trade_st['status'] == 'ok' else [])})
     from openpyxl import Workbook                       # 검수용 엑셀 (저장소에는 올리지 않음)
     wb = Workbook()
     for i, (title, rows) in enumerate((('행정동별 점포수', json.loads((CACHE / 'store_summary.json').read_text(encoding='utf-8'))), ('시군구별 인허가', lic['summary']))):
@@ -404,6 +447,8 @@ if __name__ == '__main__':
             fetch_all(sys.argv[2:])
         if step in ('lic', 'all'):
             licenses(sys.argv[2:] if step == 'lic' else ())                   # python export.py lic bakeries clinics → 그 업종만
+        if step in ('trade', 'all'):
+            trade()
         if step in ('meta', 'all'):
             meta()
     except QuotaExceeded as e:
