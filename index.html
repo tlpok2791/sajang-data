@@ -60,12 +60,17 @@ button.act{min-height:46px;border-radius:10px;cursor:pointer;transition:filter .
 .kpi{border-radius:12px;padding:12px 14px}.kpi span{display:block;margin-bottom:2px}.kpi b{letter-spacing:-.02em;font-variant-numeric:tabular-nums}
 .kpis .kpi:first-child{background:var(--navy)}.kpis .kpi:first-child b{color:#fff}.kpis .kpi:first-child span{color:#c9d2e6}
 .seg{background:var(--tint);padding:4px;border-radius:12px;gap:4px}.seg button{border:0;background:transparent;border-radius:9px;cursor:pointer}.seg button.on{background:#fff;color:var(--navy);box-shadow:0 1px 3px rgba(20,30,60,.12)}
-.tsearch{position:relative;display:block;margin-top:12px}.tsearch input{padding-left:40px;background:var(--bg);border-color:transparent}.tsearch svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--sub)}
-.tgrp{display:flex;align-items:center;gap:6px;font-size:13px;margin:18px 2px 8px;color:var(--navy2)}.tgrp small{color:#a3abbb;font-weight:600}
-.titem{border-radius:14px;padding:13px 14px;transition:border-color .15s,box-shadow .15s,transform .15s}
-.titem:hover{border-color:#c9d2e6;box-shadow:0 4px 14px rgba(20,30,60,.08);transform:translateY(-1px)}
-.titem i{width:38px;height:38px;border-radius:10px;background:var(--tint);color:var(--navy2)}.titem i svg{width:20px;height:20px}
-.titem b{letter-spacing:-.02em}.titem span{display:block;margin-top:1px}
+.tsearch{position:relative;display:block;margin:2px 0 4px}.tsearch input{padding-left:40px;background:#fff;border-color:var(--line)}.tsearch svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:#9aa3b5}
+.tgrp{font-size:13px;font-weight:600;color:#8a93a6;margin:22px 2px 8px}
+.tlist{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.titem{border:1px solid #e6e9f0;border-radius:10px;padding:14px 12px 14px 14px;gap:12px;box-shadow:none;transition:border-color .15s,box-shadow .15s}
+.titem:hover{border-color:#cfd6e3;box-shadow:0 2px 8px rgba(20,30,60,.06)}
+.titem i{width:36px;height:36px;border-radius:9px;background:var(--gb);color:var(--gc)}.titem i svg{width:19px;height:19px}
+.titem b{font-size:14px;letter-spacing:-.02em}.titem span{display:block;font-size:12px;color:#8a93a6;margin-top:2px;line-height:1.35}
+.titem::after{font-size:20px;color:#c3c9d5}
+[data-g="배달"]{--gc:#4c63d2;--gb:#eef1fd}[data-g="가격"]{--gc:#e07b12;--gb:#fff4e6}[data-g="인건비"],[data-g="서류"]{--gc:#2f9e6a;--gb:#e9f7f0}
+[data-g="운영"]{--gc:#7c5cd6;--gb:#f2eefd}[data-g="부동산"]{--gc:#dc4a63;--gb:#fdedf0}[data-g="세금"]{--gc:#556079;--gb:#eff1f5}[data-g="기타"]{--gc:#e07b12;--gb:#fff4e6}
+.thead{display:flex;align-items:center;gap:12px;margin-bottom:14px}.thead i{flex:none;width:42px;height:42px;border-radius:11px;background:var(--gb);color:var(--gc);display:grid;place-items:center}.thead i svg{width:22px;height:22px}.thead h2{margin:0}.thead p{margin:2px 0 0}
 .tback{display:inline-flex;align-items:center;gap:4px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:7px 14px 7px 10px;margin-bottom:10px;font-size:13px}
 .tback:hover{border-color:#c9d2e6}
 .tk{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}.tk .kpi b{font-size:clamp(17px,4.6vw,20px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -157,9 +162,9 @@ footer{max-width:720px;margin:0 auto;padding:0 16px 40px;font-size:12px;color:va
 </section>
 
 <section id="tools" class="hide">
-  <div id="tHome"><div class="card" style="margin-bottom:4px"><h2>사장님 계산기</h2><p class="note" style="margin:0">가격·인건비·임대료·세금처럼 매장 운영에서 자주 따지는 숫자를 바로 계산합니다. 입력값은 이 기기 브라우저에만 저장됩니다.</p><label class="tsearch"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="tQ" type="search" placeholder="계산기 찾기 (예: 주휴, 원천세, 임대료)" aria-label="계산기 찾기"></label></div><div id="tList"></div>
-    <p class="note" style="text-align:center;margin-top:16px">모든 계산기는 참고용 추정치입니다. 실제 금액은 계약·세무 조건에 따라 달라질 수 있습니다.</p></div>
-  <div id="tView" class="hide"><button class="tback" id="tBack"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>계산기 목록</button><div class="card" id="tGen"><h2 id="tTitle"></h2><p class="note" id="tSub" style="margin-top:-4px"></p><div class="tform" id="tForm"></div><div id="tRes" style="margin-top:12px"></div></div>
+  <div id="tHome"><label class="tsearch"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="tQ" type="search" placeholder="계산기 찾기 (예: 주휴, 원천세, 임대료)" aria-label="계산기 찾기"></label><div id="tList"></div>
+    <p class="note" style="text-align:center;margin-top:16px">모든 계산기는 참고용 추정치입니다. 실제 금액은 계약·세무 조건에 따라 달라질 수 있습니다.<br>입력한 값은 이 기기 브라우저에만 저장됩니다.</p></div>
+  <div id="tView" class="hide"><button class="tback" id="tBack"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>계산기 목록</button><div class="card" id="tGen"><div class="thead" id="tHead"><i id="tIcon"></i><div><h2 id="tTitle"></h2><p class="note" id="tSub"></p></div></div><div class="tform" id="tForm"></div><div id="tRes" style="margin-top:12px"></div></div>
 <div class="card hide" id="cPay"><h2>급여 · 4대보험 계산기 (2026년)</h2>
     <p class="note">직원마다 <b>월 급여(식대 등 비과세를 뺀 금액)</b>, 공제대상 가족 수(본인 포함), 8~20세 자녀 수를 넣으세요. 4대보험, 근로소득세·지방소득세, 세후 실수령액, 사업주 부담을 한 번에 계산합니다.</p>
     <div class="scroll"><table class="grid" id="eGrid"></table></div>
@@ -499,7 +504,7 @@ function toolsInit(){
   const icon=id=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${IP[id]||IP.vat}</svg>`;
   const grps=[...new Set(Tools.all.map(t=>t.grp))];
   const drawList=(q='')=>{q=q.replace(/\s/g,'');const hit=t=>!q||(t.grp+t.title+t.sub).replace(/\s/g,'').includes(q);
-    const html=grps.map(g=>{const ts=Tools.all.filter(t=>t.grp===g&&hit(t));return ts.length?`<div class="tgrp">${g} <small>${ts.length}</small></div><div class="tlist">${ts.map(t=>`<button class="titem" data-tool="${t.id}"><i>${icon(t.id)}</i><div><b>${esc(t.title)}</b><span>${esc(t.sub)}</span></div></button>`).join('')}</div>`:''}).join('');
+    const html=grps.map(g=>{const ts=Tools.all.filter(t=>t.grp===g&&hit(t));return ts.length?`<div class="tgrp">${g}</div><div class="tlist">${ts.map(t=>`<button class="titem" data-g="${t.grp}" data-tool="${t.id}"><i>${icon(t.id)}</i><div><b>${esc(t.title)}</b><span>${esc(t.sub)}</span></div></button>`).join('')}</div>`:''}).join('');
     $('#tList').innerHTML=html||'<p class="tempty">찾는 계산기가 없습니다.</p>'};
   drawList();$('#tQ').oninput=e=>drawList(e.target.value);
   const val=(f,raw)=>Array.isArray(f[2])||f[3]==='text'||f[3]==='date'?raw:(parseFloat(String(raw).replace(/[^\d.-]/g,''))||0);
@@ -511,7 +516,7 @@ function toolsInit(){
     const v=TV[id]=TV[id]||{};
     ['cPay','cCg','cGi'].forEach(c=>$('#'+c).classList.toggle('hide',c!==t.native));$('#tGen').classList.toggle('hide',!!t.native);
     if(t.native){({cPay:calcIns,cCg:calcCg,cGi:calcGi})[t.native]();scrollTo(0,0);return}
-    $('#tTitle').textContent=t.title;$('#tSub').textContent=t.sub;
+    $('#tTitle').textContent=t.title;$('#tSub').textContent=t.sub;$('#tHead').dataset.g=t.grp;$('#tIcon').innerHTML=icon(t.id);
     $('#tForm').innerHTML=t.f.map(f=>{const cur=v[f[0]]??(Array.isArray(f[2])?f[2][0]:f[2]);
       if(Array.isArray(f[2]))return `<label>${esc(f[1])}<select data-k="${f[0]}">${f[2].map(o=>`<option${o===cur?' selected':''}>${esc(o)}</option>`).join('')}</select></label>`;
       if(f[3]==='text'||f[3]==='date')return `<label>${esc(f[1])}<input data-k="${f[0]}" type="${f[3]}" value="${esc(cur)}"></label>`;
