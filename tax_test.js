@@ -161,4 +161,23 @@ eq(L.ordinary({ hourly: 10320, week: 20, dayH: 4 }).hour, 10320, '시급제는 �
 { const r = run('annual', { start: '2025-01-01', asof: '2026-01-01', size: '5명 이상', week: 40, used: 0, base: 2156880, allow: 0, bonus: 0, hourly: 0, dayH: 8 });
   eq(r.k[0][1], '15일', '1년 → 15일');
   eq(r.k[2][1], (15 * 8 * 10320).toLocaleString('ko-KR') + '원', '미사용 15일 × 8시간 × 시간급 10,320원'); }
+// 통합 급여 계산기(payroll)
+const P0 = { payType: '월급제', size: '5명 이상', base: 25e5, hourly: 0, week: 40, dayH: 8, workH: 0, weeksFull: 0, allow: 0, meal: 2e5, bonus: 0, bonusPay: 0,
+  ext: 10, night: 0, hol8: 0, holOver: 0, leaveDays: 0, age: 30, months: 12, fam: 1, kids: 0, injury: 0 };
+{ const r = L.payroll(P0), hr = 25e5 / 209;
+  eq(r.items.find(x => x[0] === '연장근로수당')[1], Math.round(hr * 10 * 1.5), '월급제 연장 10시간 = 250만÷209 × 10 × 1.5');
+  eq(r.gross, 25e5 + 2e5 + Math.round(hr * 10 * 1.5), '지급 합계 = 기본급 + 식대 + 연장수당');
+  eq(r.taxable, r.gross - 2e5, '과세 보수 = 식대 20만원 비과세 제외');
+  eq(r.ic.worker, T.insurance(r.taxable).worker, '4대보험 근로자분 = 과세 보수 기준 전부 가입');
+  eq(r.net, r.gross - T.insurance(r.taxable).worker - T.withholding(r.taxable, 1, 0).tax - T.withholding(r.taxable, 1, 0).local, '실지급 = 지급 − 4대보험 − 소득세 − 지방소득세'); }
+{ const r = L.payroll({ ...P0, size: '4명 이하' });
+  eq(r.items.find(x => x[0] === '연장근로수당')[1], Math.round(25e5 / 209 * 10), '4명 이하: 연장 가산 없이 시간분만'); }
+// 시급제 알바: 시급 10,320 · 주 20시간 · 1일 4시간 · 이번 달 87시간 · 개근 4주
+{ const r = L.payroll({ ...P0, payType: '시급제', base: 0, hourly: 10320, week: 20, dayH: 4, workH: 87, weeksFull: 4, meal: 0, ext: 0 });
+  eq(r.items[0][1], 10320 * 87, '기본급 = 시급 × 근무시간');
+  eq(r.items[1][1], 10320 * 4 * 4, '주휴 = 시급 × (20/40×8=4시간) × 4주');
+  eq(r.ic.rows.map(x => x.on).join(), 'true,true,true,true,true', '주 20시간(월 87시간): 4대보험 모두 가입');
+  eq(Math.round(r.o.hour), 10320, '시급제 통상시급 = 시급'); }
+// 연차수당 정산: 월급 2,156,880(시급 10,320) 미사용 3일 = 3 × 8 × 10,320
+eq(L.payroll({ ...P0, base: 2156880, meal: 0, ext: 0, leaveDays: 3 }).items.find(x => x[0] === '연차수당')[1], 3 * 8 * 10320, '연차수당 = 미사용 3일 × 8시간 × 통상시급');
 console.log('tax_test OK');
