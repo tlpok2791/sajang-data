@@ -1,4 +1,4 @@
-// 사장님 계산기 25종 — 정의만 둔다. 화면은 index.html의 drawTool()이 그린다.
+// 사장님 계산기 — 정의만 둔다. 화면은 index.html의 drawTool()이 그린다.
 // native 항목은 화면이 따로 있는 계산기(급여·양도·상증) — 목록에만 올린다.
 // f: [키, 라벨, 기본값, 단위('원'|'%'|그 밖 글자) 또는 select 목록 배열 또는 'text'|'date']
 // run(v) → { k: [[라벨, 값]] 핵심 3개 이하, r: [[라벨, 값]] 세부, n: 주석, doc: 인쇄용 html }
@@ -29,6 +29,76 @@ const Tools = (() => {
     }
     const per = Math.max(0, amt - 15e4), t = dn(per * .06 * .45);   // 일용: 일 15만원 공제(제47조②) × 6% − 산출세액 55% 공제(제59조③), 하루 단위
     return t < 1000 ? { tax: 0, local: 0, note: '하루 세액 1천원 미만 — 소액부징수' } : { tax: t * days, local: dn(t * .1) * days };
+  };
+  // ── 인건비: 퇴직금·연장수당·4대보험 판정·연차 (2026-10-11 법령 원문 대조) ──
+  const day = s => { const [y, m, d] = String(s || '').split('-').map(Number); return y && m && d ? Date.UTC(y, m - 1, d) : NaN; };
+  const DAY = 864e5;
+  const addMonths = (t, k) => { const d = new Date(t); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + k, d.getUTCDate()); };
+  // 소득세법 제48조(퇴직소득공제) · 제55조②(연분연승): 근속연수공제 → 환산급여(÷근속연수×12) → 환산급여공제 → 기본세율 → ÷12×근속연수
+  const retireTax = (amt, years) => {
+    const yc = years <= 5 ? 1e6 * years : years <= 10 ? 5e6 + 2e6 * (years - 5) : years <= 20 ? 15e6 + 2.5e6 * (years - 10) : 40e6 + 3e6 * (years - 20);
+    const conv = Math.max(0, amt - Math.min(amt, yc)) / years * 12;
+    const cd = conv <= 8e6 ? conv : conv <= 7e7 ? 8e6 + (conv - 8e6) * .6 : conv <= 1e8 ? 4520e4 + (conv - 7e7) * .55 : conv <= 3e8 ? 6170e4 + (conv - 1e8) * .45 : 15170e4 + (conv - 3e8) * .35;
+    const base = Math.max(0, conv - cd);
+    const tax = Math.floor(T.incomeTax(base) / 12 * years / 10) * 10;
+    return { yc: Math.min(amt, yc), conv, cd, base, tax, local: Math.floor(tax * .1 / 10) * 10 };
+  };
+  // 근로자퇴직급여 보장법 제4조①(1년 미만·4주 평균 주 15시간 미만 제외), 제8조①(1년에 30일분 평균임금)
+  // 근로기준법 제2조①6(평균임금 = 이전 3개월 임금총액 ÷ 그 기간 총일수), 같은 조②(통상임금보다 적으면 통상임금)
+  const severance = ({ start, end, hours, wage3, bonus = 0, leavePay = 0, daily = 0 }) => {
+    const s0 = day(start), last = day(end);
+    if (!(last >= s0)) return { error: '입사일과 마지막 근무일을 확인해 주세요.' };
+    const quit = last + DAY, days = Math.round((quit - s0) / DAY);       // 퇴직일 = 마지막 근무일 다음 날
+    if (days < 365) return { days, ok: false, why: '계속근로기간 1년 미만 — 퇴직금 지급 대상이 아닙니다(퇴직급여법 제4조①).' };
+    if (hours < 15) return { days, ok: false, why: '4주 평균 1주 소정근로시간 15시간 미만 — 퇴직금 지급 대상이 아닙니다(퇴직급여법 제4조①).' };
+    const p3 = Math.round((quit - addMonths(quit, -3)) / DAY);
+    const avg0 = (wage3 + bonus * 3 / 12 + leavePay * 3 / 12) / p3, avg = Math.max(avg0, daily || 0);
+    const pay = Math.floor(avg * 30 * days / 365);
+    let years = new Date(quit).getUTCFullYear() - new Date(s0).getUTCFullYear(), dq = new Date(quit), ds = new Date(s0);
+    if (Date.UTC(2000, dq.getUTCMonth(), dq.getUTCDate()) < Date.UTC(2000, ds.getUTCMonth(), ds.getUTCDate())) years--;
+    if (addMonths(s0, years * 12) < quit) years++;                         // 1년 미만 기간은 1년(소득세법 제48조①)
+    return { ok: true, days, p3, avg0, avg, pay, years, tx: retireTax(pay, years) };
+  };
+  // 근로기준법 제56조: 연장 50%, 휴일 8시간 이내 50%·초과 100%, 야간(22~06시) 50% / 상시 4명 이하는 제56조 미적용(시행령 별표 1)
+  const overtime = ({ wage, five, ext = 0, night = 0, hol8 = 0, holOver = 0 }) => {
+    const r = five ? 1 : 0;
+    const base = wage * (ext + hol8 + holOver);                            // 일한 시간 자체의 임금(규모와 관계없이)
+    const add = wage * r * (ext * .5 + night * .5 + hol8 * .5 + holOver * 1);
+    return { base, add, total: base + add, rows: [['연장 가산(50%)', wage * r * ext * .5], ['야간 가산(50%)', wage * r * night * .5], ['휴일 8시간 이내 가산(50%)', wage * r * hol8 * .5], ['휴일 8시간 초과 가산(100%)', wage * r * holOver]] };
+  };
+  // 4대보험 적용 판정 — 국민연금법 제8조①(18세 이상 60세 미만)·시행령 제2조(월 60시간 미만 단시간·1개월 미만 일용 제외),
+  // 국민건강보험법 제6조②1(1개월 미만 일용 제외)·시행령 제9조1(월 60시간 미만 단시간 제외),
+  // 고용보험법 시행령 제3조(월 60시간 또는 주 15시간 미만 제외, 3개월 이상 계속·일용은 적용)·법 제10조(65세 이후 새로 고용되면 실업급여 미적용), 산재보험은 전부 적용
+  const insCheck = ({ type, week, month, months, days = 0, age, pay, size = 'lt150', injury = 0 }) => {
+    const mh = month || week * 365 / 7 / 12, day_ = type === '일용';
+    const R = (on, why) => ({ on, why });
+    const np = age >= 60 ? R(false, '60세 이상 — 사업장가입자 아님') : day_
+      ? (months >= 1 && (days >= 8 || mh >= 60) ? R(true, '일용: 1개월 이상 계속 + 월 8일 또는 60시간 이상') : R(false, '일용: 1개월 미만이거나 월 8일·60시간 미만'))
+      : mh < 60 ? R(false, '월 소정근로시간 60시간 미만 단시간근로자(3개월 이상 근로 시 본인 희망하면 가입 가능)') : R(true, '월 60시간 이상');
+    const hi = day_ ? (months >= 1 ? R(true, '일용이라도 고용기간 1개월 이상') : R(false, '고용기간 1개월 미만 일용')) : mh < 60 ? R(false, '월 소정근로시간 60시간 미만 단시간근로자') : R(true, '월 60시간 이상');
+    const ei = day_ ? R(true, '일용근로자는 근로시간과 관계없이 적용') : (mh < 60 || week < 15) && months < 3 ? R(false, '월 60시간 또는 주 15시간 미만(3개월 이상 계속 근로하면 적용)') : R(true, (mh < 60 || week < 15) ? '단시간이지만 3개월 이상 계속 근로' : '월 60시간·주 15시간 이상');
+    const ins = T.insurance(pay, { size, injury }), f10 = x => Math.floor(x / 10 + 1e-7) * 10;
+    const old = age >= 65 && ei.on && !day_;                               // 65세 이후 새로 고용: 실업급여분(각 0.9%) 없음, 사업주 고용안정분만 — 65세 전부터 가입 중이면 해당 없음
+    const rows = [
+      ['국민연금', np, ins.rows[0][1], ins.rows[0][2]],
+      ['건강보험', hi, ins.rows[1][1], ins.rows[1][2]],
+      ['장기요양', hi, ins.rows[2][1], ins.rows[2][2]],
+      ['고용보험', ei, old ? 0 : ins.rows[3][1], old ? ins.rows[3][2] - f10(pay * .009) : ins.rows[3][2]],
+      ['산재보험', R(true, '모든 근로자 적용(사업주 전액)'), 0, ins.rows[4][2]],
+    ].map(([n, j, w, e]) => ({ n, ...j, w: j.on ? w : 0, e: j.on ? e : 0 }));
+    return { mh, rows, worker: rows.reduce((a, r) => a + r.w, 0), employer: rows.reduce((a, r) => a + r.e, 0), old };
+  };
+  // 근로기준법 제60조: 1년 미만 1개월 개근마다 1일(최대 11일), 1년 80% 이상 출근 15일, 3년 이상 최초 1년 넘는 2년마다 1일 가산(최대 25일)
+  // 제18조③ 주 15시간 미만 미적용, 시행령 별표 1 상시 4명 이하 미적용, 단시간은 통상근로자 시간 비례(제18조①·시행령 별표 2)
+  const annualLeave = ({ start, base, five, week }) => {
+    const s0 = day(start), b = day(base);
+    if (!(b >= s0)) return { error: '입사일과 기준일을 확인해 주세요.' };
+    if (!five) return { days: 0, why: '상시 4명 이하 사업장은 연차유급휴가 규정(제60조)이 적용되지 않습니다.' };
+    if (week < 15) return { days: 0, why: '1주 소정근로시간 15시간 미만은 연차가 없습니다(제18조③).' };
+    let m = 0; while (addMonths(s0, m + 1) <= b + DAY) m++;
+    const y = Math.floor(m / 12);
+    const days = y < 1 ? Math.min(11, m) : Math.min(25, 15 + Math.floor((y - 1) / 2));
+    return { months: m, years: y, days, hours: days * 8 * Math.min(1, week / 40) };
   };
   const PAYSLIP = (v, ins, w) => `<h2 style="text-align:center">${esc(v.month)} 임금명세서</h2>
     <p>사업장: ${esc(v.biz)} · 성명: ${esc(v.name)} · 지급일: ${esc(v.payday)}</p>
@@ -71,8 +141,33 @@ const Tools = (() => {
     ['인건비', 'hourly', '시급·주휴수당 계산기', '일급·주급·월급과 주휴수당', [['wage', '시급', MIN_WAGE, '원'], ['h', '1주 근무시간', 20, '시간'], ['d', '1주 근무일', 5, '일']],
       v => { const wh = weekly(v.wage, v.h), wk = v.wage * v.h + wh;
         return { k: [['주휴수당 / 주', W(wh)], ['주급', W(wk)], ['월급(4.345주)', W(wk * 365 / 7 / 12)]], r: [['일급', W(v.wage * v.h / v.d)], ['주휴시간', N(v.h >= 15 ? Math.min(v.h / 40, 1) * 8 : 0, '시간')], ['최저임금 대비', v.wage >= MIN_WAGE ? '충족' : `부족 (2026년 ${W(MIN_WAGE)})`]],
-          n: `근거: 근로기준법 제55조·시행령 제30조(1주 15시간 이상·개근 시 주휴), 2026년 최저임금 시급 ${W(MIN_WAGE)}. 1주 40시간 초과분과 5인 이상 사업장의 연장·야간·휴일 가산(50%)은 넣지 않았습니다.` }; }],
+          n: `근거: 근로기준법 제55조①·시행령 제30조(1주 소정근로일 개근 시 유급휴일), 제18조③(4주 평균 주 15시간 미만은 주휴 없음). 주휴는 상시 4명 이하 사업장에도 적용됩니다(시행령 별표 1). 2026년 최저임금 시급 ${W(MIN_WAGE)}. 연장·야간·휴일 가산은 \'연장·야간·휴일수당 계산기\'에서.` }; }],
     ['인건비', 'pay', '급여·4대보험 계산기', '직원별 실수령액과 사업주 부담', null, null, 'cPay'],
+    ['인건비', 'severance', '퇴직금 계산기', '평균임금·퇴직금과 퇴직소득세', [['start', '입사일', '', 'date'], ['end', '마지막 근무일', '', 'date'], ['hours', '1주 소정근로시간', 40, '시간'], ['wage3', '퇴직 전 3개월 임금 총액(세전)', 9000000, '원'], ['bonus', '1년간 상여금', 0, '원'], ['leavePay', '1년간 받은 연차수당', 0, '원'], ['daily', '1일 통상임금(평균임금보다 크면 이것으로)', 0, '원']],
+      v => { const r = severance(v);
+        if (r.error) return { k: [['확인', r.error]], r: [], n: '' };
+        if (!r.ok) return { k: [['퇴직금', '지급 대상 아님'], ['계속근로', N(r.days, '일')]], r: [['사유', r.why]], n: '' };
+        return { k: [['퇴직금(세전)', W(r.pay)], ['퇴직소득세+지방세', W(r.tx.tax + r.tx.local)], ['실지급액', W(r.pay - r.tx.tax - r.tx.local)]],
+          r: [['계속근로기간', N(r.days, '일')], ['평균임금(1일)', W(r.avg) + (r.avg > r.avg0 ? ' (통상임금 적용)' : '')], ['3개월 기간 일수', N(r.p3, '일')], ['근속연수(세법)', N(r.years, '년')], ['근속연수공제', W(r.tx.yc)], ['환산급여', W(r.tx.conv)], ['환산급여공제', W(r.tx.cd)], ['과세표준', W(r.tx.base)], ['퇴직소득세 / 지방소득세', `${W(r.tx.tax)} / ${W(r.tx.local)}`]],
+          n: '근거: 근로자퇴직급여 보장법 제4조①(1년 미만·주 15시간 미만 제외)·제8조①(1년에 30일분 평균임금)·제9조(퇴직 후 14일 이내 지급, 원칙적으로 근로자 IRP 계좌로 이전), 근로기준법 제2조①6·②(평균임금), 소득세법 제48조·제55조②(퇴직소득세). 퇴직금 = 평균임금 × 30일 × 재직일수 ÷ 365. 상여금·연차수당은 3/12만 넣는 고용노동부 행정해석 방식입니다. 퇴직연금(DB·DC) 가입 회사는 적립 방식에 따라 다릅니다.' }; }],
+    ['인건비', 'overtime', '연장·야간·휴일수당 계산기', '5인 이상 가산수당과 총액', [['wage', '통상시급', MIN_WAGE, '원'], ['size', '사업장 규모(상시 근로자)', ['5명 이상', '4명 이하']], ['ext', '연장근로 시간(1일 8시간·1주 40시간 초과)', 10, '시간'], ['night', '야간근로 시간(22시~06시, 위 시간과 겹쳐도 따로)', 0, '시간'], ['hol8', '휴일근로 8시간 이내', 0, '시간'], ['holOver', '휴일근로 8시간 초과분', 0, '시간']],
+      v => { const r = overtime({ ...v, five: v.size === '5명 이상' });
+        return { k: [['지급할 총액', W(r.total)], ['가산수당', W(r.add)], ['일한 시간 임금', W(r.base)]], r: r.rows.map(([l, x]) => [l, W(x)]),
+          n: v.size === '5명 이상' ? '근거: 근로기준법 제56조 — 연장 50%, 휴일 8시간 이내 50%·초과 100%, 야간(오후 10시~오전 6시) 50% 이상 가산. 야간은 다른 시간에 이미 들어간 시간이라 가산분만 더합니다(연장이면서 야간이면 50%+50%).'
+            : '상시 4명 이하 사업장은 제56조(가산수당)가 적용되지 않습니다(근로기준법 시행령 별표 1). 일한 시간만큼의 임금은 그대로 지급해야 합니다.' }; }],
+    ['인건비', 'inscheck', '알바·단시간 4대보험 판정', '어떤 보험에 가입하나 + 금액', [['type', '근로 형태', ['상용(알바·단시간 포함)', '일용']], ['week', '1주 소정근로시간', 20, '시간'], ['month', '1개월 소정근로시간(모르면 0 → 주 시간으로 환산)', 0, '시간'], ['months', '계속 근로 기간(예정 포함)', 3, '개월'], ['days', '일용: 1개월 근로일수', 0, '일'], ['age', '나이', 30, '세'], ['pay', '월 보수(비과세 제외)', 900000, '원']],
+      v => { const r = insCheck({ ...v, type: v.type === '일용' ? '일용' : '상용' });
+        return { k: [['근로자 부담 / 월', W(r.worker)], ['사업주 부담 / 월', W(r.employer)], ['월 소정근로시간', N(r.mh, '시간')]],
+          r: r.rows.map(x => [`${x.n} ${x.on ? '✔ 가입' : '✕ 제외'}`, x.on ? `${W(x.w)} / ${W(x.e)} · ${x.why}` : x.why]),
+          n: '금액은 근로자 / 사업주 순서입니다. 근거: 국민연금법 제8조①·시행령 제2조, 국민건강보험법 제6조②·시행령 제9조, 고용보험법 제10조·시행령 제3조, 산재보험은 모든 근로자 적용(업종 요율이라 금액 0으로 표시 — 근로복지공단 고지 요율 확인). ' + (r.old ? '65세 이후 새로 고용돼 고용보험 실업급여분(각 0.9%)은 빠지고 사업주 고용안정분만 냅니다. ' : '') + '일용 국민연금의 소득 기준(보건복지부 고시액)과 건강보험 공단 운영 기준은 반영하지 않았습니다.' }; }],
+    ['인건비', 'annual', '연차·연차수당 계산기', '발생 연차와 미사용 수당', [['start', '입사일', '', 'date'], ['base', '기준일(오늘·퇴사일 등)', new Date().toISOString().slice(0, 10), 'date'], ['size', '사업장 규모(상시 근로자)', ['5명 이상', '4명 이하']], ['week', '1주 소정근로시간', 40, '시간'], ['used', '올해 사용한 연차', 0, '일'], ['daily', '1일 통상임금', 82560, '원']],
+      v => { const r = annualLeave({ ...v, five: v.size === '5명 이상' });
+        if (r.error) return { k: [['확인', r.error]], r: [], n: '' };
+        if (r.why) return { k: [['발생 연차', '0일']], r: [['사유', r.why]], n: '' };
+        const left = Math.max(0, r.days - v.used), part = v.week < 40;
+        return { k: [['발생 연차', N(r.days, '일') + (part ? ` (${N(r.hours, '시간')})` : '')], ['미사용', N(left, '일')], ['미사용 연차수당', W(left * v.daily * (part ? v.week / 40 : 1))]],
+          r: [['근속', `${r.years}년 (${r.months}개월)`], ['계산 방식', r.years < 1 ? '1년 미만: 1개월 개근마다 1일(최대 11일)' : '1년 이상: 15일 + 최초 1년 넘는 2년마다 1일(최대 25일)']],
+          n: '근거: 근로기준법 제60조(연차유급휴가), 제18조③(주 15시간 미만 제외), 시행령 별표 1(4명 이하 미적용), 단시간근로자는 통상근로자 시간에 비례(시행령 별표 2 — 시간 단위). 1년간 80% 이상 출근·매월 개근했다고 보고 계산했습니다. 회계연도 기준으로 주는 회사는 결과가 다를 수 있습니다.' }; }],
     ['인건비', 'laborratio', '인건비 비율 계산기', '매출 대비 인건비 진단', [['sales', '월 매출', 30000000, '원'], ['labor', '월 인건비(사장님 부담 4대보험 포함)', 8000000, '원'], ['staff', '직원 수(사장님 제외)', 3, '명']],
       v => ({ k: [['인건비 비율', P(v.labor / v.sales * 100)], ['직원 1명당 매출', W(v.sales / Math.max(1, v.staff))], ['1명당 인건비', W(v.labor / Math.max(1, v.staff))]], r: [], n: '업종·운영 방식마다 적정 비율이 달라 기준선은 표시하지 않습니다. 매달 같은 방식으로 재서 추이를 보세요.' })],
     ['서류', 'payslip', '급여명세서 만들기', '임금명세서 바로 교부', [['biz', '사업장명', '', 'text'], ['name', '직원 이름', '', 'text'], ['month', '귀속 월', `${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월`, 'text'], ['payday', '지급일', '', 'date'], ['base', '기본급', 2156880, '원'], ['ot', '연장·야간·휴일수당', 0, '원'], ['meal', '식대(비과세, 월 20만원까지)', 200000, '원'], ['fam', '공제대상 가족(본인 포함)', 1, '명']],
@@ -129,6 +224,6 @@ const Tools = (() => {
         return { k: [['손에 남는 돈', W(back - cost)], ['정리 비용', W(cost)], ['회수액', W(back)]], r: [], n: '폐업해도 폐업일이 속한 달의 다음 달 25일까지 부가세 확정신고, 다음 해 5월 종합소득세 신고가 남습니다. 남은 재고·설비는 폐업 시 잔존재화로 부가세가 과세될 수 있습니다(부가가치세법 제10조⑥).' }; }],
   ];
   const all = list.map(([grp, id, title, sub, f, run, native]) => native ? { grp, id, title, sub, native } : { grp, id, title, sub, f, run: v => run(v, f) });   // native: index.html에 이미 있는 카드(여러 명 입력 등)
-  return { all, MIN_WAGE, weekly, loan, wht };
+  return { all, MIN_WAGE, weekly, loan, wht, severance, retireTax, overtime, insCheck, annualLeave };
 })();
 if (typeof module !== 'undefined') module.exports = Tools;

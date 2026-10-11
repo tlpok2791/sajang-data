@@ -110,4 +110,40 @@ eq(Math.round(L.loan(12e5, 12, 12, '원금균등').interest), 78000, '원금균�
 eq(run('vat', { amt: 1100000, dir: '합계(부가세 포함)' }).k[0][1], '1,000,000원', '합계 110만 → 공급가 100만');
 eq(run('card', { tier: '3억~5억', sales: 1e7, check: 0 }).k[0][1], '100,000원', '3~5억 신용 1.00% (금융위 2025.2.14)');
 eq(run('card', { tier: '3억~5억', sales: 1e7, check: 100 }).k[0][1], '75,000원', '3~5억 체크 0.75%');
+// ── 인건비 계산기 (2026-10-11 법령 원문 대조, 손계산 기대값) ──
+// 퇴직금: 2023-01-01 입사, 2025-12-31 마지막 근무 → 퇴직일 2026-01-01, 재직 1,096일, 3개월(10/1~12/31) 92일
+let sv = L.severance({ start: '2023-01-01', end: '2025-12-31', hours: 40, wage3: 9e6 });
+eq(sv.days, 1096, '재직일수 365+366+365');
+eq(sv.p3, 92, '퇴직 전 3개월 총일수 31+30+31');
+eq(sv.pay, Math.floor(9e6 / 92 * 30 * 1096 / 365), '퇴직금 = 평균임금 × 30 × 재직일수/365 (퇴직급여법 제8조①)');
+eq(sv.years, 3, '근속연수 3년');
+{ const yc = 3e6, conv = (sv.pay - yc) / 3 * 12, cd = 8e6 + (conv - 8e6) * .6, base = conv - cd;      // 소득세법 제48조: 5년 이하 100만×근속연수, 환산 800만~7천만 = 800만+초과분 60%
+  eq(sv.tx.tax, Math.floor(base * .06 / 12 * 3 / 10) * 10, '퇴직소득세 = 기본세율 6% ÷12 ×근속연수 (제55조②)'); }
+eq(L.severance({ start: '2023-03-15', end: '2024-03-20', hours: 40, wage3: 9e6 }).years, 2, '1년 6일 → 근속연수 2년(1년 미만은 1년)');
+eq(L.severance({ start: '2025-01-01', end: '2025-12-30', hours: 40, wage3: 9e6 }).ok, false, '364일 → 1년 미만 지급 대상 아님');
+eq(L.severance({ start: '2025-01-01', end: '2025-12-31', hours: 40, wage3: 9e6 }).ok, true, '365일 → 1년 대상');
+eq(L.severance({ start: '2020-01-01', end: '2025-12-31', hours: 14, wage3: 9e6 }).ok, false, '주 15시간 미만 제외(제4조①)');
+eq(L.severance({ start: '2023-01-01', end: '2025-12-31', hours: 40, wage3: 9e6, daily: 120000 }).avg, 120000, '평균임금 < 통상임금 → 통상임금(근기법 제2조②)');
+// 연장·야간·휴일: 시급 1만원, 연장10·야간2·휴일8·휴일초과2 → 일한 시간 20시간 20만 + 가산 (5+1+4+2)만
+let ot = L.overtime({ wage: 1e4, five: true, ext: 10, night: 2, hol8: 8, holOver: 2 });
+eq(ot.base, 2e5, '일한 시간 임금');
+eq(ot.add, 12e4, '가산: 연장 50%·야간 50%·휴일 8h 이내 50%·초과 100% (제56조)');
+eq(L.overtime({ wage: 1e4, five: false, ext: 10, night: 2, hol8: 8, holOver: 2 }).add, 0, '4명 이하 가산 없음(시행령 별표 1)');
+// 4대보험 판정
+let ic = L.insCheck({ type: '상용', week: 10, months: 2, age: 30, pay: 5e5 });
+eq(ic.rows.map(r => r.on).join(), 'false,false,false,false,true', '주 10시간·2개월: 연금·건강·장기요양·고용 제외, 산재만');
+eq(L.insCheck({ type: '상용', week: 10, months: 3, age: 30, pay: 5e5 }).worker, 4500, '3개월 이상 계속 → 고용보험 적용 50만×0.9%');
+eq(L.insCheck({ type: '일용', week: 40, months: .5, days: 5, age: 30, pay: 5e5 }).rows.map(r => r.on).join(), 'false,false,false,true,true', '1개월 미만 일용: 고용·산재만');
+eq(L.insCheck({ type: '상용', week: 40, months: 12, age: 62, pay: 2e6 }).rows[0].on, false, '60세 이상 국민연금 제외(국민연금법 제8조①)');
+{ const o = L.insCheck({ type: '상용', week: 40, months: 12, age: 66, pay: 2e6 }).rows[3];
+  eq(o.w, 0, '65세 이후 새로 고용: 고용보험 근로자분 없음');
+  eq(o.e, 23000 - 18000, '사업주는 고용안정 0.25%만 = 200만×(0.9%+0.25%) − 200만×0.9%'); }
+// 연차
+eq(L.annualLeave({ start: '2025-01-01', base: '2025-07-01', five: true, week: 40 }).days, 6, '1년 미만 6개월 개근 → 6일');
+eq(L.annualLeave({ start: '2025-01-01', base: '2026-01-01', five: true, week: 40 }).days, 15, '1년 → 15일');
+eq(L.annualLeave({ start: '2020-01-01', base: '2023-01-01', five: true, week: 40 }).days, 16, '3년 → 16일');
+eq(L.annualLeave({ start: '2020-01-01', base: '2026-01-01', five: true, week: 40 }).days, 17, '6년 → 15 + (6-1)/2 내림 2 = 17일');
+eq(L.annualLeave({ start: '2000-01-01', base: '2026-01-01', five: true, week: 40 }).days, 25, '26년 → 상한 25일');
+eq(L.annualLeave({ start: '2020-01-01', base: '2026-01-01', five: false, week: 40 }).days, 0, '4명 이하 연차 없음');
+eq(L.annualLeave({ start: '2020-01-01', base: '2026-01-01', five: true, week: 14 }).days, 0, '주 15시간 미만 연차 없음(제18조③)');
 console.log('tax_test OK');
