@@ -41,6 +41,12 @@ def main():
     for f in FILES:
         src = HERE / f
         (shutil.copytree if src.is_dir() else shutil.copy2)(src, SITE / f)
+    # 캐시 무효화: Pages는 max-age=600이라 배포 직후 새 index.html + 옛 tools.js가 섞여 보였다(2026-10-11 "아직 반영 안 된 것 같은데")
+    #   → 스크립트 주소에 배포 시각을 붙여 배포마다 새 파일을 받게 한다.
+    import re, time
+    ver = time.strftime('%Y%m%d%H%M%S')
+    idx = SITE / 'index.html'
+    idx.write_text(re.sub(r'<script src="([\w.]+\.js)"', lambda m: f'<script src="{m.group(1)}?v={ver}"', idx.read_text(encoding='utf-8')), encoding='utf-8')
     (SITE / '.nojekyll').write_text('')                 # GitHub Pages가 파일을 가공하지 않고 그대로 내보내게
     git('init', '-q', '-b', 'gh-pages')
     git('config', 'user.name', 'tlpok2791')
