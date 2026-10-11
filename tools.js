@@ -1,4 +1,5 @@
 // 사장님 계산기 25종 — 정의만 둔다. 화면은 index.html의 drawTool()이 그린다.
+// native 항목은 화면이 따로 있는 계산기(급여·양도·상증) — 목록에만 올린다.
 // f: [키, 라벨, 기본값, 단위('원'|'%'|그 밖 글자) 또는 select 목록 배열 또는 'text'|'date']
 // run(v) → { k: [[라벨, 값]] 핵심 3개 이하, r: [[라벨, 값]] 세부, n: 주석, doc: 인쇄용 html }
 const Tools = (() => {
@@ -71,10 +72,7 @@ const Tools = (() => {
       v => { const wh = weekly(v.wage, v.h), wk = v.wage * v.h + wh;
         return { k: [['주휴수당 / 주', W(wh)], ['주급', W(wk)], ['월급(4.345주)', W(wk * 365 / 7 / 12)]], r: [['일급', W(v.wage * v.h / v.d)], ['주휴시간', N(v.h >= 15 ? Math.min(v.h / 40, 1) * 8 : 0, '시간')], ['최저임금 대비', v.wage >= MIN_WAGE ? '충족' : `부족 (2026년 ${W(MIN_WAGE)})`]],
           n: `근거: 근로기준법 제55조·시행령 제30조(1주 15시간 이상·개근 시 주휴), 2026년 최저임금 시급 ${W(MIN_WAGE)}. 1주 40시간 초과분과 5인 이상 사업장의 연장·야간·휴일 가산(50%)은 넣지 않았습니다.` }; }],
-    ['인건비', 'ins4', '4대보험 공제 계산기', '공제액과 사업주 부담까지', [['pay', '월 급여(비과세 제외)', 2500000, '원'], ['fam', '공제대상 가족(본인 포함)', 1, '명'], ['kids', '8~20세 자녀', 0, '명']],
-      v => { const ins = T.insurance(v.pay), w = T.withholding(v.pay, Math.max(1, v.fam), v.kids);
-        return { k: [['실수령액', W(v.pay - ins.worker - w.tax - w.local)], ['근로자 4대보험', W(ins.worker)], ['사업주 부담', W(ins.employer)]], r: [...ins.rows.map(r => [r[0] + ' (근로자 / 사업주)', `${W(r[1])} / ${W(r[2])}`]), ['소득세 / 지방소득세', `${W(w.tax)} / ${W(w.local)}`]],
-          n: '\'세금 계산기 → 급여·4대보험\'과 같은 계산입니다(여러 명은 그쪽에서). 산재보험은 업종 요율이라 빠져 있습니다.' }; }],
+    ['인건비', 'pay', '급여·4대보험 계산기', '직원별 실수령액과 사업주 부담', null, null, 'cPay'],
     ['인건비', 'laborratio', '인건비 비율 계산기', '매출 대비 인건비 진단', [['sales', '월 매출', 30000000, '원'], ['labor', '월 인건비(사장님 부담 4대보험 포함)', 8000000, '원'], ['staff', '직원 수(사장님 제외)', 3, '명']],
       v => ({ k: [['인건비 비율', P(v.labor / v.sales * 100)], ['직원 1명당 매출', W(v.sales / Math.max(1, v.staff))], ['1명당 인건비', W(v.labor / Math.max(1, v.staff))]], r: [], n: '업종·운영 방식마다 적정 비율이 달라 기준선은 표시하지 않습니다. 매달 같은 방식으로 재서 추이를 보세요.' })],
     ['서류', 'payslip', '급여명세서 만들기', '임금명세서 바로 교부', [['biz', '사업장명', '', 'text'], ['name', '직원 이름', '', 'text'], ['month', '귀속 월', `${new Date().getFullYear()}년 ${new Date().getMonth() + 1}월`, 'text'], ['payday', '지급일', '', 'date'], ['base', '기본급', 2156880, '원'], ['ot', '연장·야간·휴일수당', 0, '원'], ['meal', '식대(비과세, 월 20만원까지)', 200000, '원'], ['fam', '공제대상 가족(본인 포함)', 1, '명']],
@@ -115,6 +113,8 @@ const Tools = (() => {
     ['세금', 'vat', '부가세 계산기', '공급가액·부가세·합계 변환', [['amt', '금액', 1100000, '원'], ['dir', '입력한 금액이', ['합계(부가세 포함)', '공급가액(부가세 별도)']]],
       v => { const sup = v.dir === '합계(부가세 포함)' ? Math.round(v.amt / 1.1) : v.amt, tax = v.dir === '합계(부가세 포함)' ? v.amt - sup : Math.floor(v.amt * .1);
         return { k: [['공급가액', W(sup)], ['부가세', W(tax)], ['합계', W(sup + tax)]], r: [], n: '부가가치세법 제30조: 세율 10%. 원 미만 처리는 거래처 관행에 따라 1원 차이가 날 수 있습니다.' }; }],
+    ['세금', 'cg', '양도소득세 계산기', '부동산 팔 때 세금', null, null, 'cCg'],
+    ['세금', 'gi', '상속·증여세 계산기', '물려주고 받을 때 세금', null, null, 'cGi'],
     ['기타', 'startup', '창업비용 계산기', '창업비용 합산과 예비비', [['dep', '보증금', 30000000, '원'], ['key', '권리금', 20000000, '원'], ['int', '인테리어', 40000000, '원'], ['eq', '주방·설비·집기', 25000000, '원'], ['first', '초도 물품·재료', 5000000, '원'], ['etc', '간판·홍보·인허가 등', 5000000, '원'], ['run', '운영자금(첫 몇 달 고정비)', 30000000, '원'], ['res', '예비비', 10, '%']],
       (v, F) => { const items = F.filter(f => f[0] !== 'res').map(f => [f[1], v[f[0]]]), s = items.reduce((a, b) => a + b[1], 0), r = s * v.res / 100;
         return { k: [['총 필요 자금', W(s + r)], ['예비비', W(r)], ['돌려받는 돈(보증금)', W(v.dep)]], r: items.map(([l, x]) => [l, W(x)]), n: '인테리어·설비는 세금계산서를 받으면 부가세를 조기환급 신청할 수 있습니다(부가가치세법 제59조). 사업자등록 전 매입은 주민번호로 세금계산서를 받아 두세요.' }; }],
@@ -128,7 +128,7 @@ const Tools = (() => {
       v => { const cost = v.restore + v.penalty + v.sev + v.loss, back = v.dep + v.key + v.used;
         return { k: [['손에 남는 돈', W(back - cost)], ['정리 비용', W(cost)], ['회수액', W(back)]], r: [], n: '폐업해도 폐업일이 속한 달의 다음 달 25일까지 부가세 확정신고, 다음 해 5월 종합소득세 신고가 남습니다. 남은 재고·설비는 폐업 시 잔존재화로 부가세가 과세될 수 있습니다(부가가치세법 제10조⑥).' }; }],
   ];
-  const all = list.map(([grp, id, title, sub, f, run]) => ({ grp, id, title, sub, f, run: v => run(v, f) }));
+  const all = list.map(([grp, id, title, sub, f, run, native]) => native ? { grp, id, title, sub, native } : { grp, id, title, sub, f, run: v => run(v, f) });   // native: index.html에 이미 있는 카드(여러 명 입력 등)
   return { all, MIN_WAGE, weekly, loan, wht };
 })();
 if (typeof module !== 'undefined') module.exports = Tools;

@@ -43,9 +43,37 @@ td:first-child{white-space:nowrap}.scroll{overflow-x:auto;margin:0 -4px}.grid in
 .tform{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px 10px}.tform label{font-size:12px;color:var(--sub)}.tform .u{position:relative}.tform .u input{padding-right:42px;text-align:right}.tform .u em{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-style:normal;color:var(--sub);font-size:13px}
 .tdoc{border:1px solid var(--line);border-radius:8px;padding:16px;margin-top:10px;background:#fff}.tdoc table td,.tdoc table th{border:1px solid var(--line);padding:6px}
 @media print{body *{visibility:hidden}.tdoc,.tdoc *{visibility:visible}.tdoc{position:absolute;left:0;top:0;width:100%;border:0}}
+/* ── 다듬기 2026-10-11 ── */
+:root{--line:#e6e9f0;--tint:#eef1f7;--ring:rgba(64,92,146,.18)}
+body{-webkit-font-smoothing:antialiased;letter-spacing:-.01em;line-height:1.5}
+header{padding:20px 16px 14px;background:linear-gradient(160deg,#1e2d50,#2a3c66)}header h1{font-size:20px;letter-spacing:-.02em}header p{margin:4px 0 0}
+nav{position:sticky;top:0;z-index:20;background:var(--navy);padding:0 12px;box-shadow:0 2px 10px rgba(20,30,60,.12)}
+nav button{font-size:14px;cursor:pointer;transition:color .15s}nav button:hover{color:#fff}
+main{padding-top:16px}
+section:not(.hide){animation:fade .2s ease}@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.card{border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:0 1px 2px rgba(20,30,60,.04)}
+h2{font-size:17px;letter-spacing:-.02em}
+select,input,textarea{min-height:44px;border-radius:10px;transition:border-color .15s,box-shadow .15s}
+input[type=checkbox]{min-height:0}
+select:focus,input:focus,textarea:focus{outline:0;border-color:#405c92;box-shadow:0 0 0 3px var(--ring)}
+button.act{min-height:46px;border-radius:10px;cursor:pointer;transition:filter .15s,transform .05s}button.act:hover{filter:brightness(1.12)}button.act:active{transform:scale(.99)}
+.kpi{border-radius:12px;padding:12px 14px}.kpi span{display:block;margin-bottom:2px}.kpi b{letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.kpis .kpi:first-child{background:var(--navy)}.kpis .kpi:first-child b{color:#fff}.kpis .kpi:first-child span{color:#c9d2e6}
+.seg{background:var(--tint);padding:4px;border-radius:12px;gap:4px}.seg button{border:0;background:transparent;border-radius:9px;cursor:pointer}.seg button.on{background:#fff;color:var(--navy);box-shadow:0 1px 3px rgba(20,30,60,.12)}
+.tsearch{position:relative;display:block;margin-top:12px}.tsearch input{padding-left:40px;background:var(--bg);border-color:transparent}.tsearch svg{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--sub)}
+.tgrp{display:flex;align-items:center;gap:6px;font-size:13px;margin:18px 2px 8px;color:var(--navy2)}.tgrp small{color:#a3abbb;font-weight:600}
+.titem{border-radius:14px;padding:13px 14px;transition:border-color .15s,box-shadow .15s,transform .15s}
+.titem:hover{border-color:#c9d2e6;box-shadow:0 4px 14px rgba(20,30,60,.08);transform:translateY(-1px)}
+.titem i{width:38px;height:38px;border-radius:10px;background:var(--tint);color:var(--navy2)}.titem i svg{width:20px;height:20px}
+.titem b{letter-spacing:-.02em}.titem span{display:block;margin-top:1px}
+.tback{display:inline-flex;align-items:center;gap:4px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:7px 14px 7px 10px;margin-bottom:10px;font-size:13px}
+.tback:hover{border-color:#c9d2e6}
+.tk{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}.tk .kpi b{font-size:clamp(17px,4.6vw,20px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tempty{text-align:center;color:var(--sub);padding:30px 0;font-size:14px}
+footer{border-top:1px solid var(--line);padding-top:16px!important}
 footer{max-width:720px;margin:0 auto;padding:0 16px 40px;font-size:12px;color:var(--sub);line-height:1.7}</style></head><body>
-<header><h1>사장님 데이터 비서</h1><p>공공데이터로 보는 우리 동네 상권 · 세금 일정 · 예상 세금 | 세정회계법인 서동희 회계사</p>
-<nav><button data-t="area" class="on">우리 동네 상권</button><button data-t="cal">세금 일정</button><button data-t="tax">예상 세금</button><button data-t="ins">세금 계산기</button><button data-t="tools">사장님 계산기</button><button data-t="biz">거래처 확인</button></nav></header>
+<header><h1>사장님 데이터 비서</h1><p>공공데이터로 보는 우리 동네 상권 · 세금 일정 · 예상 세금 | 세정회계법인 서동희 회계사</p></header>
+<nav><button data-t="area" class="on">우리 동네 상권</button><button data-t="cal">세금 일정</button><button data-t="tax">예상 세금</button><button data-t="tools">사장님 계산기</button><button data-t="biz">거래처 확인</button></nav>
 <main>
 
 <section id="area">
@@ -124,13 +152,15 @@ footer{max-width:720px;margin:0 auto;padding:0 16px 40px;font-size:12px;color:va
     <div class="row" style="flex-wrap:wrap"><label class="note"><input type="checkbox" id="rbOn" style="width:auto"> 주민세 사업소분 대상 (사업소 있는 개인·법인)</label>
       <label class="note">사업소 연면적 ㎡ (330㎡ 초과 시 과세)<input id="rbArea" inputmode="numeric" placeholder="0"></label><label class="note">법인 자본금 (만원)<input id="rbCap" inputmode="numeric" placeholder="0"></label></div>
     <div id="allOut"></div>
-    <p class="note">'세금 계산기' 탭의 양도소득세·상속·증여세 결과는 그 화면에서 "포함"에 체크한 경우에만 더합니다. 원천세(직원 급여)는 직원이 내는 세금을 회사가 대신 떼어 내는 것이라 사업주 부담에는 넣지 않았습니다. 재산세·자동차세·취득세 등은 넣지 않았습니다.</p>
+    <p class="note">'사장님 계산기'의 양도소득세·상속·증여세 결과는 그 화면에서 "포함"에 체크한 경우에만 더합니다. 원천세(직원 급여)는 직원이 내는 세금을 회사가 대신 떼어 내는 것이라 사업주 부담에는 넣지 않았습니다. 재산세·자동차세·취득세 등은 넣지 않았습니다.</p>
   </div>
 </section>
 
-<section id="ins" class="hide">
-  <div class="seg" style="margin-bottom:12px"><button data-c="pay" class="on">급여·4대보험</button><button data-c="cg">양도소득세</button><button data-c="gi">상속·증여세</button></div>
-  <div class="card" id="cPay"><h2>급여 · 4대보험 계산기 (2026년)</h2>
+<section id="tools" class="hide">
+  <div id="tHome"><div class="card" style="margin-bottom:4px"><h2>사장님 계산기</h2><p class="note" style="margin:0">가격·인건비·임대료·세금처럼 매장 운영에서 자주 따지는 숫자를 바로 계산합니다. 입력값은 이 기기 브라우저에만 저장됩니다.</p><label class="tsearch"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="tQ" type="search" placeholder="계산기 찾기 (예: 주휴, 원천세, 임대료)" aria-label="계산기 찾기"></label></div><div id="tList"></div>
+    <p class="note" style="text-align:center;margin-top:16px">모든 계산기는 참고용 추정치입니다. 실제 금액은 계약·세무 조건에 따라 달라질 수 있습니다.</p></div>
+  <div id="tView" class="hide"><button class="tback" id="tBack"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>계산기 목록</button><div class="card" id="tGen"><h2 id="tTitle"></h2><p class="note" id="tSub" style="margin-top:-4px"></p><div class="tform" id="tForm"></div><div id="tRes" style="margin-top:12px"></div></div>
+<div class="card hide" id="cPay"><h2>급여 · 4대보험 계산기 (2026년)</h2>
     <p class="note">직원마다 <b>월 급여(식대 등 비과세를 뺀 금액)</b>, 공제대상 가족 수(본인 포함), 8~20세 자녀 수를 넣으세요. 4대보험, 근로소득세·지방소득세, 세후 실수령액, 사업주 부담을 한 번에 계산합니다.</p>
     <div class="scroll"><table class="grid" id="eGrid"></table></div>
     <div class="row" style="margin-top:8px"><button class="act" id="eAdd" style="background:var(--navy2)">+ 직원 추가</button></div>
@@ -177,12 +207,7 @@ footer{max-width:720px;margin:0 auto;padding:0 16px 40px;font-size:12px;color:va
     <p class="note">근거: 상속세 및 증여세법 제26조(세율 10~50%), 제18~22조(기초·인적·일괄 5억·배우자·금융재산 공제), 제53조·제53조의2(증여공제), 제57조(세대생략 할증), 제69조(신고세액공제 3%). 동거주택·가업·영농 상속공제, 배우자 법정상속분의 정확한 계산, 재산 평가는 단순화했습니다. 상속·증여세에는 지방세가 붙지 않습니다.</p>
     <label class="note"><input type="checkbox" id="fInc" style="width:auto"> 이 결과를 '예상 세금'의 올해 세금 합계에 포함</label>
   </div>
-</section>
-
-<section id="tools" class="hide">
-  <div id="tHome"><div class="card" style="margin-bottom:4px"><h2>사장님 계산기</h2><p class="note" style="margin:0">가격·인건비·임대료·세금처럼 매장 운영에서 자주 따지는 숫자를 바로 계산합니다. 입력값은 이 기기 브라우저에만 저장됩니다.</p></div><div id="tList"></div>
-    <p class="note" style="text-align:center;margin-top:16px">모든 계산기는 참고용 추정치입니다. 실제 금액은 계약·세무 조건에 따라 달라질 수 있습니다.</p></div>
-  <div id="tView" class="hide"><button class="tback" id="tBack">‹ 계산기 목록</button><div class="card"><h2 id="tTitle"></h2><p class="note" id="tSub" style="margin-top:-4px"></p><div class="tform" id="tForm"></div><div id="tRes" style="margin-top:12px"></div></div></div>
+  </div>
 </section>
 </main>
 <footer id="foot"></footer>
@@ -201,8 +226,8 @@ const Y=new Date().getFullYear();let META;
 
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));
-  ['area','biz','cal','tax','ins','tools'].forEach(t=>$('#'+t).classList.toggle('hide',t!==b.dataset.t));
-  if(b.dataset.t==='cal')loadCal();if(b.dataset.t==='tax')calcTax();if(b.dataset.t==='ins')calcIns();
+  ['area','biz','cal','tax','tools'].forEach(t=>$('#'+t).classList.toggle('hide',t!==b.dataset.t));
+  if(b.dataset.t==='cal')loadCal();if(b.dataset.t==='tax')calcTax();
 });
 
 /* ── 지역 ── */
@@ -470,9 +495,13 @@ drawEmps();
 function toolsInit(){
   let TV={};try{TV=JSON.parse(localStorage.getItem('tools')||'{}')}catch(e){}
   const tsave=()=>{try{localStorage.setItem('tools',JSON.stringify(TV))}catch(e){}};
-  const ICON={배달:'배',가격:'₩',인건비:'인',서류:'문',운영:'운',부동산:'임',세금:'세',기타:'+'};
+  const IP={deliv:'<path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>',coupon:'<path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/><path d="M13 7v2M13 11v2M13 15v2"/>',margin:'<path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><circle cx="8" cy="8" r="1.5"/>',disc:'<path d="M19 5L5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/>',raise:'<path d="M3 17l6-6 4 4 8-8M15 7h6v6"/>',unit:'<path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/>',hourly:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',pay:'<path d="M3 7a2 2 0 0 1 2-2h13v4"/><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M16 13.5h.01"/>',laborratio:'<circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M16 4a3 3 0 0 1 0 6M21 20a6 6 0 0 0-4-5.6"/>',payslip:'<path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/>',contract:'<path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8l-5-5z"/><path d="M9 17l1-3 5-5 2 2-5 5z"/>',bep:'<path d="M12 3v18M7 21h10M5 7h14M5 7l-3 7a3 3 0 0 0 6 0zM19 7l-3 7a3 3 0 0 0 6 0z"/>',target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',fixed:'<path d="M21 12A9 9 0 1 1 12 3v9z"/><path d="M15 3.5A9 9 0 0 1 20.5 9H15z"/>',turn:'<path d="M20 11a8 8 0 0 0-14-5L4 8M4 4v4h4M4 13a8 8 0 0 0 14 5l2-2M20 20v-4h-4"/>',card:'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/>',rentratio:'<path d="M3 11l9-8 9 8M5 9v12h14V9"/><path d="M10 21v-6h4v6"/>',pyeong:'<path d="M3 17L17 3l4 4L7 21z"/><path d="M7 13l2 2M10 10l2 2M13 7l2 2"/>',fairrent:'<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M15 8l2 2"/>',wht:'<path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6"/>',vat:'<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 6h8M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01M8 18.5h8"/>',cg:'<rect x="5" y="3" width="14" height="18" rx="1"/><path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2M10 21v-3h4v3"/>',gi:'<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M5 12v9h14v-9M12 8v13M12 8c-1-3-3-4.5-4.5-3.5S8.5 8 12 8zM12 8c1-3 3-4.5 4.5-3.5S15.5 8 12 8z"/>',startup:'<path d="M5 15c-1.5 1.5-2 5-2 5s3.5-.5 5-2M9 15l-3-3c1-4 5-9 12-9 0 7-5 11-9 12z"/><circle cx="15" cy="9" r="1.5"/>',runway:'<path d="M6 3h12M6 21h12M7 3v3a5 5 0 0 0 10 0V3M7 21v-3a5 5 0 0 1 10 0v3"/>',loan:'<path d="M3 10l9-6 9 6M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18"/>',closing:'<path d="M5 21V4a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v17M3 21h18M15 12h.01"/>'};
+  const icon=id=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${IP[id]||IP.vat}</svg>`;
   const grps=[...new Set(Tools.all.map(t=>t.grp))];
-  $('#tList').innerHTML=grps.map(g=>`<div class="tgrp">${g}</div><div class="tlist">${Tools.all.filter(t=>t.grp===g).map(t=>`<button class="titem" data-tool="${t.id}"><i>${ICON[g]}</i><div><b>${esc(t.title)}</b><span>${esc(t.sub)}</span></div></button>`).join('')}</div>`).join('');
+  const drawList=(q='')=>{q=q.replace(/\s/g,'');const hit=t=>!q||(t.grp+t.title+t.sub).replace(/\s/g,'').includes(q);
+    const html=grps.map(g=>{const ts=Tools.all.filter(t=>t.grp===g&&hit(t));return ts.length?`<div class="tgrp">${g} <small>${ts.length}</small></div><div class="tlist">${ts.map(t=>`<button class="titem" data-tool="${t.id}"><i>${icon(t.id)}</i><div><b>${esc(t.title)}</b><span>${esc(t.sub)}</span></div></button>`).join('')}</div>`:''}).join('');
+    $('#tList').innerHTML=html||'<p class="tempty">찾는 계산기가 없습니다.</p>'};
+  drawList();$('#tQ').oninput=e=>drawList(e.target.value);
   const val=(f,raw)=>Array.isArray(f[2])||f[3]==='text'||f[3]==='date'?raw:(parseFloat(String(raw).replace(/[^\d.-]/g,''))||0);
   const show=id=>{
     const t=Tools.all.find(x=>x.id===id);
@@ -480,6 +509,8 @@ function toolsInit(){
     const u=new URL(location);t?u.searchParams.set('c',id):u.searchParams.delete('c');history.replaceState(null,'',u);
     if(!t)return;
     const v=TV[id]=TV[id]||{};
+    ['cPay','cCg','cGi'].forEach(c=>$('#'+c).classList.toggle('hide',c!==t.native));$('#tGen').classList.toggle('hide',!!t.native);
+    if(t.native){({cPay:calcIns,cCg:calcCg,cGi:calcGi})[t.native]();scrollTo(0,0);return}
     $('#tTitle').textContent=t.title;$('#tSub').textContent=t.sub;
     $('#tForm').innerHTML=t.f.map(f=>{const cur=v[f[0]]??(Array.isArray(f[2])?f[2][0]:f[2]);
       if(Array.isArray(f[2]))return `<label>${esc(f[1])}<select data-k="${f[0]}">${f[2].map(o=>`<option${o===cur?' selected':''}>${esc(o)}</option>`).join('')}</select></label>`;
@@ -487,7 +518,7 @@ function toolsInit(){
       return `<label>${esc(f[1])}<span class="u"><input data-k="${f[0]}" inputmode="decimal" value="${esc(f[3]==='원'?won(cur):cur)}"><em>${esc(f[3])}</em></span></label>`}).join('');
     const calc=()=>{const x={};t.f.forEach(f=>x[f[0]]=val(f,v[f[0]]??(Array.isArray(f[2])?f[2][0]:f[2])));
       let r;try{r=t.run(x)}catch(e){$('#tRes').innerHTML='<p class="warn">입력값을 확인해 주세요.</p>';return}
-      $('#tRes').innerHTML=`<div class="kpis">${r.k.map(([l,n])=>`<div class="kpi"><span>${esc(l)}</span><b style="font-size:19px">${esc(n)}</b></div>`).join('')}</div>`
+      $('#tRes').innerHTML=`<div class="kpis tk">${r.k.map(([l,n])=>`<div class="kpi"><span>${esc(l)}</span><b>${esc(n)}</b></div>`).join('')}</div>`
         +(r.r.length?`<table class="res" style="margin-top:8px">${r.r.map(([l,n])=>`<tr><td>${esc(l)}</td><td>${esc(n)}</td></tr>`).join('')}</table>`:'')
         +(r.doc?`<div class="tdoc">${r.doc}</div><div class="row" style="margin-top:8px"><button class="act" id="tPrint">인쇄 · PDF 저장</button></div>`:'')
         +(r.n?`<p class="note">${esc(r.n)}</p>`:'');
@@ -500,17 +531,15 @@ function toolsInit(){
   };
   $('#tList').onclick=e=>{const b=e.target.closest('[data-tool]');if(b)show(b.dataset.tool)};
   $('#tBack').onclick=()=>show(null);
-  if(qs.get('c'))show(qs.get('c'));
+  const c0=qs.get('tab')==='ins'?(qs.get('sub')||'pay'):qs.get('c');   // 옛 '세금 계산기' 탭 링크(?tab=ins&sub=cg)도 새 위치로
+  if(c0)setTimeout(()=>show(c0));                  // 양도·상증 코드의 let 선언이 아래에 있어 초기화 뒤에 연다(TDZ)
 }
 toolsInit();
 
-/* ── 세금 계산기 하위 탭 ── */
+/* ── 양도·상속·증여 계산기 (사장님 계산기 목록에서 연다) ── */
 let C={};try{C=JSON.parse(localStorage.getItem('calc')||'{}')}catch(e){}
 const csave=()=>{try{localStorage.setItem('calc',JSON.stringify(C))}catch(e){}};
 const MAN=v=>num(v)*1e4;
-function subTab(c){C.tab=c;csave();document.querySelectorAll('[data-c]').forEach(b=>b.classList.toggle('on',b.dataset.c===c));
-  $('#cPay').classList.toggle('hide',c!=='pay');$('#cCg').classList.toggle('hide',c!=='cg');$('#cGi').classList.toggle('hide',c!=='gi')}
-document.querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>subTab(b.dataset.c));
 function giTab(g){C.gi=g;csave();document.querySelectorAll('[data-g]').forEach(b=>b.classList.toggle('on',b.dataset.g===g));$('#giftPane').classList.toggle('hide',g!=='gift');$('#inhPane').classList.toggle('hide',g!=='inh');calcGi()}
 document.querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>giTab(b.dataset.g));
 const CK=['gKind','gYears','gPrice','gCost','gExp','gRes','gOne','gHeavy','gNbl','gUsed','gInc','fRel','fAmt','fPrior','fPriorTax','fUsed','fMar','fSkip','fInc','hEst','hDebt','hFun','hFin','hPrior','hPriorTax','hSp','hSpAmt','hKids','hMinor','hOld','rbOn','rbArea','rbCap'];
@@ -561,7 +590,7 @@ function calcAll(){
 }
 if(qs.get('demo')&&!C.gPrice){Object.assign(C,{gKind:'building',gYears:'5',gPrice:'50000',gCost:'30000',gExp:'1000',gInc:true,fAmt:'10000',fInc:true,rbOn:true});   // 시연값
   CK.forEach(k=>{const el=$('#'+k);if(C[k]!=null){if(el.type==='checkbox')el.checked=C[k];else el.value=C[k]}})}
-subTab(qs.get('sub')||C.tab||'pay');giTab(C.gi||'gift');calcCg();
+giTab(C.gi||'gift');calcCg();
 
 /* ── 거래처 확인: 검증번호 확인 + 복사 후 홈택스 ── */
 const fmtBiz=d=>d.length===10?`${d.slice(0,3)}-${d.slice(3,5)}-${d.slice(5)}`:d;
@@ -602,5 +631,5 @@ function drawSales(){
    <p class="note">자료: ${esc(M.source)}. 카드 결제 등으로 추정한 매출이라 현금 매출은 빠져 있고 실제와 차이가 있습니다. 점포 수는 서울시 기준(유사업종 포함)이라 위 점포 현황과 다를 수 있습니다.</p>`;
 }
 
-initArea().then(()=>{if(qs.get('tab'))document.querySelector(`nav button[data-t="${qs.get('tab')}"]`)?.click()});
+initArea().then(()=>{const t=qs.get('tab')==='ins'?'tools':qs.get('tab');if(t)document.querySelector(`nav button[data-t="${t}"]`)?.click()});
 </script></body></html>
