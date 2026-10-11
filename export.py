@@ -50,7 +50,7 @@ SIDO_ALIAS = {'전남광주통합특별시': ['전남광주통합특별시', '�
               '광주광역시': ['광주광역시', '전남광주통합특별시'], '강원특별자치도': ['강원특별자치도', '강원도'],
               '전북특별자치도': ['전북특별자치도', '전라북도'], '제주특별자치도': ['제주특별자치도', '제주도']}
 # 상가정보 CSV 열 위치 (2026-06 파일 기준). 머리글로 매번 확인한다.
-C = dict(name=1, brch=2, l=4, m=6, s=8, sido_cd=11, sido=12, sg_cd=13, sg=14, ad_cd=15, ad=16, ld=18, road=31, floor=35)
+C = dict(name=1, brch=2, l=4, m=6, s=8, sido_cd=11, sido=12, sg_cd=13, sg=14, ad_cd=15, ad=16, ld=18, road=31, floor=35, lon=37, lat=38)
 
 
 class NotRegistered(Exception):
@@ -112,6 +112,14 @@ def read_jsonl(p):
 
 
 # ── 점포: 전국 CSV → 동별 JSON ─────────────────────────────────────
+def xy(x):
+    """지도용 좌표(경도 x, 위도 y). 소수 5자리 ≈ 1m — 더 길게 두면 파일만 커진다."""
+    try:
+        return {'x': round(float(x[8]), 5), 'y': round(float(x[9]), 5)}
+    except (IndexError, ValueError):
+        return {}
+
+
 def stores(zip_path):
     regions = {}
     app = Appender(CACHE / 'stores')
@@ -123,7 +131,7 @@ def stores(zip_path):
             with z.open(info) as fh:
                 rd = csv.reader(io.TextIOWrapper(fh, encoding='utf-8-sig'))
                 head = next(rd)
-                assert head[C['name']] == '상호명' and head[C['ad_cd']] == '행정동코드' and head[C['road']] == '도로명주소', head
+                assert head[C['name']] == '상호명' and head[C['ad_cd']] == '행정동코드' and head[C['road']] == '도로명주소' and head[C['lon']] == '경도', head
                 for r in rd:
                     ad = r[C['ad_cd']]
                     if not ad:
@@ -132,7 +140,7 @@ def stores(zip_path):
                     sg = regions.setdefault(r[C['sido_cd']], {'name': sido, 'signgu': {}})['signgu'] \
                                 .setdefault(r[C['sg_cd']], {'name': r[C['sg']], 'dongs': {}})
                     sg['dongs'][ad] = r[C['ad']]
-                    app.add(ad, [r[C['name']], r[C['brch']], r[C['l']], r[C['m']], r[C['s']], r[C['road']], r[C['floor']], r[C['ld']]])
+                    app.add(ad, [r[C['name']], r[C['brch']], r[C['l']], r[C['m']], r[C['s']], r[C['road']], r[C['floor']], r[C['ld']], r[C['lon']], r[C['lat']]])
                     n += 1
             print(f'  {sido} {n:,}곳', flush=True)
     app.close()
@@ -146,7 +154,7 @@ def stores(zip_path):
                 lds = collections.Counter(x[7] for x in rows if x[7])
                 ld = [d for d, k in lds.most_common() if k >= max(1, len(rows) * .05)]   # 점포 5% 이상이 속한 법정동(읍·면)
                 dump(OUT / 'dong' / f'{ad_cd}.json', {'month': MONTH, 'adong': ad_nm, 'signgu': sg['name'], 'sido': sd['name'], 'ldongs': ld,
-                                                      'stores': [{'n': x[0], 'b': x[1], 'l': x[2], 'm': x[3], 's': x[4], 'a': x[5], 'f': x[6]} for x in rows]})
+                                                      'stores': [{'n': x[0], 'b': x[1], 'l': x[2], 'm': x[3], 's': x[4], 'a': x[5], 'f': x[6], **xy(x)} for x in rows]})
                 summary.append({'시도': sd['name'], '시군구': sg['name'], '행정동': ad_nm, '법정동': ', '.join(ld), '전체': len(rows),
                                 **collections.Counter(x[2] for x in rows)})
             sg['dongs'] = sorted(sg['dongs'].items(), key=lambda t: t[1])

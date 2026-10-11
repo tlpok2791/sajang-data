@@ -87,6 +87,7 @@ footer{max-width:720px;margin:0 auto;padding:0 16px 40px;font-size:12px;color:va
     <div class="row"><select id="adong"></select><select id="lcls"></select></div>
     <p class="note" id="areaNote"></p>
   </div>
+  <div class="card hide" id="mapCard"><h2 id="mapTitle">점포 지도</h2><div id="mapLegend" class="legend" style="margin-bottom:8px"></div><div id="map" style="height:380px;border-radius:12px;overflow:hidden;border:1px solid var(--line)"></div><p class="note" id="mapNote"></p></div>
   <div class="card"><h2 id="sTitle">점포 현황</h2><div id="sBody" class="load">지역을 고르세요</div></div>
   <div class="card"><h2 id="mTitle">동네 매출</h2>
     <div class="row"><select id="mInd"></select></div>
@@ -232,7 +233,7 @@ const Y=new Date().getFullYear();let META;
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));
   ['area','biz','cal','tax','tools'].forEach(t=>$('#'+t).classList.toggle('hide',t!==b.dataset.t));
-  if(b.dataset.t==='cal')loadCal();if(b.dataset.t==='tax')calcTax();
+  if(b.dataset.t==='area'&&MAP)setTimeout(()=>MAP.invalidateSize(),50);if(b.dataset.t==='cal')loadCal();if(b.dataset.t==='tax')calcTax();
 });
 
 /* ── 지역 ── */
@@ -257,7 +258,7 @@ let S=[],L=[],D;
 async function onAdong(){pref.adong=$('#adong').value;save();if(!pref.adong)return;
   $('#sBody').innerHTML='<div class="load">불러오는 중…</div>';
   D=await data(`dong/${pref.adong}.json`);
-  S=D.stores.map(x=>({bizesNm:x.n,brchNm:x.b,indsLclsNm:x.l,indsMclsNm:x.m,indsSclsNm:x.s,rdnmAdr:x.a,flrNo:x.f}));
+  S=D.stores.map(x=>({bizesNm:x.n,brchNm:x.b,indsLclsNm:x.l,indsMclsNm:x.m,indsSclsNm:x.s,rdnmAdr:x.a,flrNo:x.f,x:x.x,y:x.y}));
   const l=[...new Set(S.map(x=>x.indsLclsNm))].sort();opts($('#lcls'),l.map(x=>[x,x]));
   $('#lcls').value=l.includes(pref.lcls)?pref.lcls:(l.includes('음식')?'음식':l[0]);drawStores();loadLic();loadSales();loadTrade();
 }
@@ -277,8 +278,30 @@ async function loadTrade(){
 $('#lcls').onchange=()=>{pref.lcls=$('#lcls').value;save();drawStores()};
 const count=(a,f)=>Object.entries(a.reduce((m,x)=>(m[f(x)]=(m[f(x)]||0)+1,m),{})).sort((a,b)=>b[1]-a[1]);
 function bars(list){const m=Math.max(...list.map(x=>x[1]),1);return list.map(([k,n])=>`<div class="bar"><span class="lab">${esc(k)}</span><i style="width:${n/m*60}%"></i><span class="n">${n}</span></div>`).join('')}
+/* ── 점포 지도 (Leaflet + OpenStreetMap, 키 없음) ── */
+let MAP,LAYER,leafletP;
+function leaflet(){            // 지도 라이브러리는 지도가 필요할 때만 받는다
+  return leafletP=leafletP||new Promise((ok,no)=>{const c=document.createElement('link');c.rel='stylesheet';c.href='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';document.head.append(c);
+    const j=document.createElement('script');j.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';j.onload=ok;j.onerror=no;document.head.append(j)})}
+const MAPC=['#1e2d50','#e8590c','#2f9e6a','#7c5cd6','#dc4a63','#0f8b9c'];
+async function drawMap(a,lc){
+  const pts=a.filter(x=>x.x&&x.y);
+  $('#mapCard').classList.toggle('hide',!pts.length);if(!pts.length)return;     // 좌표가 들어간 데이터부터 보인다
+  try{await leaflet()}catch(e){$('#mapCard').classList.add('hide');return}
+  const LF=window.L;                              // 페이지에 인허가 목록 변수 L이 따로 있어 Leaflet은 window.L로 부른다
+  if(!MAP){MAP=LF.map('map',{preferCanvas:true,scrollWheelZoom:false});
+    LF.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(MAP)}
+  if(LAYER)LAYER.remove();
+  const top=count(pts,x=>x.indsMclsNm).slice(0,5).map(t=>t[0]),col=m=>top.includes(m)?MAPC[top.indexOf(m)]:'#9aa3b5';
+  LAYER=LF.layerGroup(pts.map(x=>LF.circleMarker([x.y,x.x],{radius:5,weight:1,color:'#fff',fillColor:col(x.indsMclsNm),fillOpacity:.85})
+    .bindPopup(`<b>${esc(x.bizesNm)} ${esc(x.brchNm||'')}</b><br>${esc(x.indsSclsNm)}<br><span style="color:#6b7488">${esc(x.rdnmAdr)}${x.flrNo?' '+esc(x.flrNo)+'층':''}</span>`))).addTo(MAP);
+  MAP.fitBounds(LF.latLngBounds(pts.map(x=>[x.y,x.x])).pad(.08));setTimeout(()=>MAP.invalidateSize(),50);
+  $('#mapTitle').textContent=`${D.adong} · ${lc} 점포 지도`;
+  $('#mapLegend').innerHTML=top.map(m=>`<span style="margin-right:10px;white-space:nowrap"><i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${col(m)};margin-right:4px"></i>${esc(m)}</span>`).join('')+`<span style="white-space:nowrap"><i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#9aa3b5;margin-right:4px"></i>그 밖</span>`;
+  $('#mapNote').textContent=`점을 누르면 상호·주소가 보입니다. ${pts.length.toLocaleString()}곳 · 위치는 소상공인시장진흥공단 상가(상권)정보 좌표 기준이라 실제와 조금 다를 수 있습니다. 지도 © OpenStreetMap 기여자.`;
+}
 function drawStores(){
-  const lc=$('#lcls').value,a=S.filter(x=>x.indsLclsNm===lc);
+  const lc=$('#lcls').value,a=S.filter(x=>x.indsLclsNm===lc);drawMap(a,lc);
   $('#sTitle').textContent=`${D.adong} · ${lc} 점포 현황`;
   $('#sBody').innerHTML=`<div class="kpis"><div class="kpi"><b>${S.length}</b><span>전체 점포</span></div><div class="kpi"><b>${a.length}</b><span>${esc(lc)} 점포</span></div><div class="kpi"><b>${(a.length/S.length*100).toFixed(0)}%</b><span>비중</span></div></div>
    <h3>세부 업종</h3>${bars(count(a,x=>x.indsSclsNm).slice(0,12))}
