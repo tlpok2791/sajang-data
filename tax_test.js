@@ -146,4 +146,15 @@ eq(L.annualLeave({ start: '2020-01-01', base: '2026-01-01', five: true, week: 40
 eq(L.annualLeave({ start: '2000-01-01', base: '2026-01-01', five: true, week: 40 }).days, 25, '26년 → 상한 25일');
 eq(L.annualLeave({ start: '2020-01-01', base: '2026-01-01', five: false, week: 40 }).days, 0, '4명 이하 연차 없음');
 eq(L.annualLeave({ start: '2020-01-01', base: '2026-01-01', five: true, week: 14 }).days, 0, '주 15시간 미만 연차 없음(제18조③)');
+// 통상임금 (근로기준법 시행령 제6조, 대법원 2023다302838)
+{ const o = L.ordinary({ base: 2e6, fixed: 2e5, bonus: 24e5, week: 40, dayH: 8 });
+  eq(o.monthH, 209, '주 40시간: (40+8)×365/7÷12 = 208.57 → 209시간');
+  eq(Math.round(o.hour), Math.round((2e6 + 2e5 + 2e5) / 209), '시간급 = (기본급+고정수당+정기상여/12) ÷ 209');
+  eq(Math.round(o.day), Math.round((2e6 + 2e5 + 2e5) / 209 * 8), '일급 = 시간급 × 1일 소정 8시간(제6조③)'); }
+eq(L.ordinary({ base: 1e6, week: 20, dayH: 4 }).monthH, 104, '주 20시간: (20+4)×365/7÷12 = 104.3 → 104시간');
+eq(L.ordinary({ base: 1e6, week: 14, dayH: 4 }).monthH, Math.round(14 * 365 / 7 / 12), '주 15시간 미만은 주휴시간 없음');
+eq(L.ordinary({ hourly: 10320, week: 20, dayH: 4 }).hour, 10320, '시급제는 시급 그대로');
+// 퇴직금: 평균임금이 통상임금보다 적으면 통상임금 — 3개월 임금 3백만(=1일 약 3.3만)인데 월 기본급 300만이면 통상 일급이 더 큼
+{ const r = L.severance({ start: '2023-01-01', end: '2025-12-31', hours: 40, wage3: 3e6, base: 3e6, dayH: 8 });
+  eq(Math.round(r.avg), Math.round(3e6 / 209 * 8), '통상 일급(300만÷209×8)으로 퇴직금 계산(근기법 제2조②)'); }
 console.log('tax_test OK');
