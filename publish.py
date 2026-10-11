@@ -16,7 +16,7 @@ import requests
 
 HERE = Path(__file__).parent
 SITE = Path(os.environ.get('LOCALAPPDATA', Path.home())) / 'sajang-data-cache' / 'site'   # gh-pages 작업 폴더 (OneDrive 밖: 동기화가 파일을 잡지 않게)
-FILES = ['index.html', 'tax.js', 'tools.js', 'wht_table.js', 'widget_calc.png', 'data']
+FILES = ['index.html', 'tax.js', 'tools.js', 'wht_table.js', 'widget_calc.png']   # 2026-10-11 계산기만 운영 → data/(상권·인허가 570MB)는 올리지 않음. 탭을 되살리면 'data' 다시 추가
 
 
 def git(*a, cwd=SITE):
@@ -33,7 +33,6 @@ def preflight():
 
 
 def main():
-    assert (HERE / 'data' / 'meta.json').exists(), 'data/meta.json 이 없습니다. export.py 를 먼저 실행하세요.'
     preflight()
     remote = subprocess.run(['git', 'remote', 'get-url', 'origin'], cwd=HERE, capture_output=True, text=True, check=True).stdout.strip()
     if SITE.exists():                                   # git 객체 파일은 읽기 전용이라 권한을 풀고 지운다
