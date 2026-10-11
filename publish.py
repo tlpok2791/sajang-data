@@ -16,7 +16,7 @@ import requests
 
 HERE = Path(__file__).parent
 SITE = Path(os.environ.get('LOCALAPPDATA', Path.home())) / 'sajang-data-cache' / 'site'   # gh-pages 작업 폴더 (OneDrive 밖: 동기화가 파일을 잡지 않게)
-FILES = ['index.html', 'tax.js', 'tools.js', 'wht_table.js', 'data']
+FILES = ['index.html', 'tax.js', 'tools.js', 'wht_table.js', 'widget_calc.png', 'data']
 
 
 def git(*a, cwd=SITE):
