@@ -11,7 +11,7 @@
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Pretendard,'Malgun Gothic',sans-serif;font-size:15px}
 header{background:var(--navy);color:#fff;padding:18px 16px 0}
 header h1{margin:0;font-size:19px}header p{margin:4px 0 12px;font-size:12px;color:#c9d2e6}
-nav{display:flex;gap:4px}nav button{flex:1;border:0;background:transparent;color:#c9d2e6;padding:11px 0;font:inherit;font-weight:600;border-bottom:3px solid transparent}
+nav{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}nav button{flex:1 0 auto;padding-left:8px!important;padding-right:8px!important;white-space:nowrap;border:0;background:transparent;color:#c9d2e6;padding:11px 0;font:inherit;font-weight:600;border-bottom:3px solid transparent}
 nav button.on{color:#fff;border-color:var(--orange)}
 main{max-width:720px;margin:0 auto;padding:14px 16px 60px}
 .card{background:var(--card);border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 1px 3px rgba(20,30,60,.06)}
@@ -35,9 +35,17 @@ table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:7px 4px;b
 .dday{font-weight:800;color:var(--orange);white-space:nowrap}.past{opacity:.45}
 td:first-child{white-space:nowrap}.scroll{overflow-x:auto;margin:0 -4px}.grid input{width:96px;padding:6px;text-align:right;font-size:13px}.grid td,.grid th{padding:3px;white-space:nowrap}.res td:last-child{text-align:right;font-variant-numeric:tabular-nums}.res tr.sum td{font-weight:800;color:var(--navy);border-top:2px solid var(--navy)}.seg{display:flex;gap:4px;margin:4px 0 10px}.seg button{flex:1;padding:9px;border:1px solid var(--line);background:#fff;border-radius:8px;font:inherit;font-weight:700;color:var(--sub)}.seg button.on{background:var(--navy);color:#fff;border-color:var(--navy)}.simple td{padding:3px}.simple input{text-align:right}details summary{cursor:pointer;color:var(--navy2);font-weight:700;margin:8px 0}.hide{display:none}.load{color:var(--sub);font-size:13px;padding:6px 0}
 
+.tgrp{font-size:13px;font-weight:700;color:var(--sub);margin:14px 2px 6px}.tlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
+.titem{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;text-align:left;font:inherit;cursor:pointer;color:var(--ink)}
+.titem:hover{border-color:var(--navy2)}.titem i{flex:none;width:34px;height:34px;border-radius:9px;background:#eef1f7;color:var(--navy2);display:grid;place-items:center;font-style:normal;font-weight:800;font-size:14px}
+.titem b{display:block;font-size:14px}.titem span{font-size:12px;color:var(--sub)}.titem::after{content:'›';margin-left:auto;color:#b4bccb;font-size:18px}
+.tback{border:0;background:none;color:var(--navy2);font:inherit;font-weight:700;padding:4px 0 10px;cursor:pointer}
+.tform{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px 10px}.tform label{font-size:12px;color:var(--sub)}.tform .u{position:relative}.tform .u input{padding-right:42px;text-align:right}.tform .u em{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-style:normal;color:var(--sub);font-size:13px}
+.tdoc{border:1px solid var(--line);border-radius:8px;padding:16px;margin-top:10px;background:#fff}.tdoc table td,.tdoc table th{border:1px solid var(--line);padding:6px}
+@media print{body *{visibility:hidden}.tdoc,.tdoc *{visibility:visible}.tdoc{position:absolute;left:0;top:0;width:100%;border:0}}
 footer{max-width:720px;margin:0 auto;padding:0 16px 40px;font-size:12px;color:var(--sub);line-height:1.7}</style></head><body>
 <header><h1>사장님 데이터 비서</h1><p>공공데이터로 보는 우리 동네 상권 · 세금 일정 · 예상 세금 | 세정회계법인 서동희 회계사</p>
-<nav><button data-t="area" class="on">우리 동네 상권</button><button data-t="cal">세금 일정</button><button data-t="tax">예상 세금</button><button data-t="ins">세금 계산기</button><button data-t="biz">거래처 확인</button></nav></header>
+<nav><button data-t="area" class="on">우리 동네 상권</button><button data-t="cal">세금 일정</button><button data-t="tax">예상 세금</button><button data-t="ins">세금 계산기</button><button data-t="tools">사장님 계산기</button><button data-t="biz">거래처 확인</button></nav></header>
 <main>
 
 <section id="area">
@@ -168,10 +176,17 @@ footer{max-width:720px;margin:0 auto;padding:0 16px 40px;font-size:12px;color:va
     <label class="note"><input type="checkbox" id="fInc" style="width:auto"> 이 결과를 '예상 세금'의 올해 세금 합계에 포함</label>
   </div>
 </section>
+
+<section id="tools" class="hide">
+  <div id="tHome"><div class="card" style="margin-bottom:4px"><h2>사장님 계산기</h2><p class="note" style="margin:0">가격·인건비·임대료·세금처럼 매장 운영에서 자주 따지는 숫자를 바로 계산합니다. 입력값은 이 기기 브라우저에만 저장됩니다.</p></div><div id="tList"></div>
+    <p class="note" style="text-align:center;margin-top:16px">모든 계산기는 참고용 추정치입니다. 실제 금액은 계약·세무 조건에 따라 달라질 수 있습니다.</p></div>
+  <div id="tView" class="hide"><button class="tback" id="tBack">‹ 계산기 목록</button><div class="card"><h2 id="tTitle"></h2><p class="note" id="tSub" style="margin-top:-4px"></p><div class="tform" id="tForm"></div><div id="tRes" style="margin-top:12px"></div></div></div>
+</section>
 </main>
 <footer id="foot"></footer>
 <script src="wht_table.js"></script>
 <script src="tax.js"></script>
+<script src="tools.js"></script>
 <script>
 const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const opts=(el,list,first)=>{el.innerHTML=(first?`<option value="">${first}</option>`:'')+list.map(([v,t])=>`<option value="${esc(v)}">${esc(t)}</option>`).join('')};
@@ -184,7 +199,7 @@ const Y=new Date().getFullYear();let META;
 
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));
-  ['area','biz','cal','tax','ins'].forEach(t=>$('#'+t).classList.toggle('hide',t!==b.dataset.t));
+  ['area','biz','cal','tax','ins','tools'].forEach(t=>$('#'+t).classList.toggle('hide',t!==b.dataset.t));
   if(b.dataset.t==='cal')loadCal();if(b.dataset.t==='tax')calcTax();if(b.dataset.t==='ins')calcIns();
 });
 
@@ -435,6 +450,44 @@ function calcIns(){
    <p class="note">매달 원천세 신고·납부(다음 달 10일): 소득세 ${won(S('tax'))}원 + 지방소득세 ${won(S('local'))}원. 연간 사업주 4대보험 부담 약 ${man(S('emp')*12)}${inj?'':' · 산재보험료율을 넣으면 산재보험도 계산합니다'}.</p>`;
 }
 drawEmps();
+
+/* ── 사장님 계산기 (정의는 tools.js) ── */
+function toolsInit(){
+  let TV={};try{TV=JSON.parse(localStorage.getItem('tools')||'{}')}catch(e){}
+  const tsave=()=>{try{localStorage.setItem('tools',JSON.stringify(TV))}catch(e){}};
+  const ICON={배달:'배',가격:'₩',인건비:'인',서류:'문',운영:'운',부동산:'임',세금:'세',기타:'+'};
+  const grps=[...new Set(Tools.all.map(t=>t.grp))];
+  $('#tList').innerHTML=grps.map(g=>`<div class="tgrp">${g}</div><div class="tlist">${Tools.all.filter(t=>t.grp===g).map(t=>`<button class="titem" data-tool="${t.id}"><i>${ICON[g]}</i><div><b>${esc(t.title)}</b><span>${esc(t.sub)}</span></div></button>`).join('')}</div>`).join('');
+  const val=(f,raw)=>Array.isArray(f[2])||f[3]==='text'||f[3]==='date'?raw:(parseFloat(String(raw).replace(/[^\d.-]/g,''))||0);
+  const show=id=>{
+    const t=Tools.all.find(x=>x.id===id);
+    $('#tHome').classList.toggle('hide',!!t);$('#tView').classList.toggle('hide',!t);
+    const u=new URL(location);t?u.searchParams.set('c',id):u.searchParams.delete('c');history.replaceState(null,'',u);
+    if(!t)return;
+    const v=TV[id]=TV[id]||{};
+    $('#tTitle').textContent=t.title;$('#tSub').textContent=t.sub;
+    $('#tForm').innerHTML=t.f.map(f=>{const cur=v[f[0]]??(Array.isArray(f[2])?f[2][0]:f[2]);
+      if(Array.isArray(f[2]))return `<label>${esc(f[1])}<select data-k="${f[0]}">${f[2].map(o=>`<option${o===cur?' selected':''}>${esc(o)}</option>`).join('')}</select></label>`;
+      if(f[3]==='text'||f[3]==='date')return `<label>${esc(f[1])}<input data-k="${f[0]}" type="${f[3]}" value="${esc(cur)}"></label>`;
+      return `<label>${esc(f[1])}<span class="u"><input data-k="${f[0]}" inputmode="decimal" value="${esc(f[3]==='원'?won(cur):cur)}"><em>${esc(f[3])}</em></span></label>`}).join('');
+    const calc=()=>{const x={};t.f.forEach(f=>x[f[0]]=val(f,v[f[0]]??(Array.isArray(f[2])?f[2][0]:f[2])));
+      let r;try{r=t.run(x)}catch(e){$('#tRes').innerHTML='<p class="warn">입력값을 확인해 주세요.</p>';return}
+      $('#tRes').innerHTML=`<div class="kpis">${r.k.map(([l,n])=>`<div class="kpi"><span>${esc(l)}</span><b style="font-size:19px">${esc(n)}</b></div>`).join('')}</div>`
+        +(r.r.length?`<table class="res" style="margin-top:8px">${r.r.map(([l,n])=>`<tr><td>${esc(l)}</td><td>${esc(n)}</td></tr>`).join('')}</table>`:'')
+        +(r.doc?`<div class="tdoc">${r.doc}</div><div class="row" style="margin-top:8px"><button class="act" id="tPrint">인쇄 · PDF 저장</button></div>`:'')
+        +(r.n?`<p class="note">${esc(r.n)}</p>`:'');
+      const pb=$('#tPrint');if(pb)pb.onclick=()=>print();};
+    $('#tForm').querySelectorAll('[data-k]').forEach(el=>{
+      el.oninput=el.onchange=()=>{v[el.dataset.k]=el.value;tsave();calc()};
+      if(el.closest('.u')&&el.nextElementSibling.textContent==='원')el.onblur=()=>{el.value=won(val([],el.value))};
+    });
+    calc();scrollTo(0,0);
+  };
+  $('#tList').onclick=e=>{const b=e.target.closest('[data-tool]');if(b)show(b.dataset.tool)};
+  $('#tBack').onclick=()=>show(null);
+  if(qs.get('c'))show(qs.get('c'));
+}
+toolsInit();
 
 /* ── 세금 계산기 하위 탭 ── */
 let C={};try{C=JSON.parse(localStorage.getItem('calc')||'{}')}catch(e){}
