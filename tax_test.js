@@ -108,8 +108,8 @@ eq(Math.round(L.loan(12e6, 0, 12, '원리금균등').first), 1e6, '무이자 원
 eq(Math.round(L.loan(1e7, 12, 12, '만기일시').interest), 12e5, '만기일시 1천만 연12% 1년 이자 120만');
 eq(Math.round(L.loan(12e5, 12, 12, '원금균등').interest), 78000, '원금균등 120만 연12%: (120만+110만+…+10만)×1%');
 eq(run('vat', { amt: 1100000, dir: '합계(부가세 포함)' }).k[0][1], '1,000,000원', '합계 110만 → 공급가 100만');
-eq(run('card', { tier: '3억~5억', sales: 1e7, check: 0 }).k[0][1], '100,000원', '3~5억 신용 1.00% (금융위 2025.2.14)');
-eq(run('card', { tier: '3억~5억', sales: 1e7, check: 100 }).k[0][1], '75,000원', '3~5억 체크 0.75%');
+eq(run('card', { tier: '3억~5억', cardSales: 1e7, check: 0 }).k[0][1], '100,000원', '3~5억 신용 1.00% (금융위 2025.2.14)');
+eq(run('card', { tier: '3억~5억', cardSales: 1e7, check: 100 }).k[0][1], '75,000원', '3~5억 체크 0.75%');
 // ── 인건비 계산기 (2026-10-11 법령 원문 대조, 손계산 기대값) ──
 // 퇴직금: 2023-01-01 입사, 2025-12-31 마지막 근무 → 퇴직일 2026-01-01, 재직 1,096일, 3개월(10/1~12/31) 92일
 let sv = L.severance({ start: '2023-01-01', end: '2025-12-31', hours: 40, wage3: 9e6 });
@@ -147,7 +147,7 @@ eq(L.annualLeave({ start: '2000-01-01', base: '2026-01-01', five: true, week: 40
 eq(L.annualLeave({ start: '2020-01-01', base: '2026-01-01', five: false, week: 40 }).days, 0, '4명 이하 연차 없음');
 eq(L.annualLeave({ start: '2020-01-01', base: '2026-01-01', five: true, week: 14 }).days, 0, '주 15시간 미만 연차 없음(제18조③)');
 // 통상임금 (근로기준법 시행령 제6조, 대법원 2023다302838)
-{ const o = L.ordinary({ base: 2e6, fixed: 2e5, bonus: 24e5, week: 40, dayH: 8 });
+{ const o = L.ordinary({ base: 2e6, allow: 2e5, bonus: 24e5, week: 40, dayH: 8 });
   eq(o.monthH, 209, '주 40시간: (40+8)×365/7÷12 = 208.57 → 209시간');
   eq(Math.round(o.hour), Math.round((2e6 + 2e5 + 2e5) / 209), '시간급 = (기본급+고정수당+정기상여/12) ÷ 209');
   eq(Math.round(o.day), Math.round((2e6 + 2e5 + 2e5) / 209 * 8), '일급 = 시간급 × 1일 소정 8시간(제6조③)'); }
@@ -157,4 +157,8 @@ eq(L.ordinary({ hourly: 10320, week: 20, dayH: 4 }).hour, 10320, '시급제는 �
 // 퇴직금: 평균임금이 통상임금보다 적으면 통상임금 — 3개월 임금 3백만(=1일 약 3.3만)인데 월 기본급 300만이면 통상 일급이 더 큼
 { const r = L.severance({ start: '2023-01-01', end: '2025-12-31', hours: 40, wage3: 3e6, base: 3e6, dayH: 8 });
   eq(Math.round(r.avg), Math.round(3e6 / 209 * 8), '통상 일급(300만÷209×8)으로 퇴직금 계산(근기법 제2조②)'); }
+// 연차 화면 입력: 기준일(asof)과 월 기본급(base)이 서로 덮어쓰지 않아야 한다(2026-10-11 키 충돌 수정)
+{ const r = run('annual', { start: '2025-01-01', asof: '2026-01-01', size: '5명 이상', week: 40, used: 0, base: 2156880, allow: 0, bonus: 0, hourly: 0, dayH: 8 });
+  eq(r.k[0][1], '15일', '1년 → 15일');
+  eq(r.k[2][1], (15 * 8 * 10320).toLocaleString('ko-KR') + '원', '미사용 15일 × 8시간 × 시간급 10,320원'); }
 console.log('tax_test OK');

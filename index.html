@@ -76,6 +76,9 @@ button.act{min-height:46px;border-radius:10px;cursor:pointer;transition:filter .
 .tk{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}.tk .kpi b{font-size:clamp(17px,4.6vw,20px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mlab{background:rgba(255,255,255,.92);border:0;box-shadow:0 1px 3px rgba(20,30,60,.25);border-radius:6px;padding:1px 6px;font:600 11px Pretendard,sans-serif;color:var(--ink);white-space:nowrap}.mlab::before{display:none}
 #map:not(.showlab) .mlab{display:none}
+.shr{font-style:normal;font-size:10px;font-weight:700;color:#405c92;background:#eef1f7;border-radius:6px;padding:1px 5px;margin-left:5px;vertical-align:1px}
+.tlinks{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:12px;font-size:12px;color:var(--sub)}.tlinks button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 12px;font:inherit;font-size:13px;color:var(--navy2);cursor:pointer}.tlinks button:hover{border-color:#c9d2e6}
+.tfeed{font-size:12px;color:#405c92;background:#eef1f7;border-radius:8px;padding:8px 10px;margin-top:8px}
 .tempty{text-align:center;color:var(--sub);padding:30px 0;font-size:14px}
 footer{border-top:1px solid var(--line);padding-top:16px!important}
 footer{max-width:720px;margin:0 auto;padding:0 16px 40px;font-size:12px;color:var(--sub);line-height:1.7}</style></head><body>
@@ -547,23 +550,30 @@ function toolsInit(){
     $('#tHome').classList.toggle('hide',!!t);$('#tView').classList.toggle('hide',!t);
     const u=new URL(location);t?u.searchParams.set('c',id):u.searchParams.delete('c');history.replaceState(null,'',u);
     if(!t)return;
-    const v=TV[id]=TV[id]||{};
+    const v=TV[id]=TV[id]||{},S=TV._s=TV._s||{};
+    const get=k=>Tools.SHARED.has(k)?(S[k]??v[k]):v[k],put=(k,x)=>{if(Tools.SHARED.has(k))S[k]=x;else v[k]=x};
+    const tag=k=>Tools.SHARED.has(k)?'<i class="shr" title="다른 계산기와 같이 쓰는 값 — 여기서 고치면 다른 계산기에도 반영됩니다">연결</i>':'';
     ['cPay','cCg','cGi'].forEach(c=>$('#'+c).classList.toggle('hide',c!==t.native));$('#tGen').classList.toggle('hide',!!t.native);
     if(t.native){({cPay:calcIns,cCg:calcCg,cGi:calcGi})[t.native]();scrollTo(0,0);return}
     $('#tTitle').textContent=t.title;$('#tSub').textContent=t.sub;$('#tHead').dataset.g=t.grp;$('#tIcon').innerHTML=icon(t.id);
-    $('#tForm').innerHTML=t.f.map(f=>{const cur=v[f[0]]??(Array.isArray(f[2])?f[2][0]:f[2]);
-      if(Array.isArray(f[2]))return `<label>${esc(f[1])}<select data-k="${f[0]}">${f[2].map(o=>`<option${o===cur?' selected':''}>${esc(o)}</option>`).join('')}</select></label>`;
-      if(f[3]==='text'||f[3]==='date')return `<label>${esc(f[1])}<input data-k="${f[0]}" type="${f[3]}" value="${esc(cur)}"></label>`;
-      return `<label>${esc(f[1])}<span class="u"><input data-k="${f[0]}" inputmode="decimal" value="${esc(f[3]==='원'?won(cur):cur)}"><em>${esc(f[3])}</em></span></label>`}).join('');
-    const calc=()=>{const x={};t.f.forEach(f=>x[f[0]]=val(f,v[f[0]]??(Array.isArray(f[2])?f[2][0]:f[2])));
-      let r;try{r=t.run(x)}catch(e){$('#tRes').innerHTML='<p class="warn">입력값을 확인해 주세요.</p>';return}
+    $('#tForm').innerHTML=t.f.map(f=>{const cur=get(f[0])??(Array.isArray(f[2])?f[2][0]:f[2]);
+      if(Array.isArray(f[2]))return `<label>${esc(f[1])}${tag(f[0])}<select data-k="${f[0]}">${f[2].map(o=>`<option${o===cur?' selected':''}>${esc(o)}</option>`).join('')}</select></label>`;
+      if(f[3]==='text'||f[3]==='date')return `<label>${esc(f[1])}${tag(f[0])}<input data-k="${f[0]}" type="${f[3]}" value="${esc(cur)}"></label>`;
+      return `<label>${esc(f[1])}${tag(f[0])}<span class="u"><input data-k="${f[0]}" inputmode="decimal" value="${esc(f[3]==='원'?won(cur):cur)}"><em>${esc(f[3])}</em></span></label>`}).join('');
+    let last;
+    const calc=()=>{const x={};t.f.forEach(f=>x[f[0]]=val(f,get(f[0])??(Array.isArray(f[2])?f[2][0]:f[2])));
+      let r;try{r=last=t.run(x)}catch(e){last=null;$('#tRes').innerHTML='<p class="warn">입력값을 확인해 주세요.</p>';return}
+      const feeds=r.out?Tools.all.filter(o=>o.f&&o.id!==t.id&&o.f.some(f=>f[0] in r.out)).map(o=>o.title):[];
       $('#tRes').innerHTML=`<div class="kpis tk">${r.k.map(([l,n])=>`<div class="kpi"><span>${esc(l)}</span><b>${esc(n)}</b></div>`).join('')}</div>`
         +(r.r.length?`<table class="res" style="margin-top:8px">${r.r.map(([l,n])=>`<tr><td>${esc(l)}</td><td>${esc(n)}</td></tr>`).join('')}</table>`:'')
         +(r.doc?`<div class="tdoc">${r.doc}</div><div class="row" style="margin-top:8px"><button class="act" id="tPrint">인쇄 · PDF 저장</button></div>`:'')
-        +(r.n?`<p class="note">${esc(r.n)}</p>`:'');
+        +(feeds.length?`<p class="tfeed">이 결과는 ${feeds.map(esc).join(' · ')}에 자동으로 들어갑니다.</p>`:'')
+        +(r.n?`<p class="note">${esc(r.n)}</p>`:'')
+        +(t.links.length?`<div class="tlinks">이어서 계산 ${t.links.map(l=>Tools.all.find(o=>o.id===l)).filter(Boolean).map(o=>`<button data-go="${o.id}">${esc(o.title)} ›</button>`).join('')}</div>`:'');
+      $('#tRes').querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>show(b.dataset.go));
       const pb=$('#tPrint');if(pb)pb.onclick=()=>print();};
     $('#tForm').querySelectorAll('[data-k]').forEach(el=>{
-      el.oninput=el.onchange=()=>{v[el.dataset.k]=el.value;tsave();calc()};
+      el.oninput=el.onchange=()=>{put(el.dataset.k,el.value);calc();if(last&&last.out)Object.entries(last.out).forEach(([k,x])=>{S[k]=String(x)});tsave()};
       if(el.closest('.u')&&el.nextElementSibling.textContent==='원')el.onblur=()=>{el.value=won(val([],el.value))};
     });
     calc();scrollTo(0,0);
