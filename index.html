@@ -74,6 +74,8 @@ button.act{min-height:46px;border-radius:10px;cursor:pointer;transition:filter .
 .tback{display:inline-flex;align-items:center;gap:4px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:7px 14px 7px 10px;margin-bottom:10px;font-size:13px}
 .tback:hover{border-color:#c9d2e6}
 .tk{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}.tk .kpi b{font-size:clamp(17px,4.6vw,20px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mlab{background:rgba(255,255,255,.92);border:0;box-shadow:0 1px 3px rgba(20,30,60,.25);border-radius:6px;padding:1px 6px;font:600 11px Pretendard,sans-serif;color:var(--ink);white-space:nowrap}.mlab::before{display:none}
+#map:not(.showlab) .mlab{display:none}
 .tempty{text-align:center;color:var(--sub);padding:30px 0;font-size:14px}
 footer{border-top:1px solid var(--line);padding-top:16px!important}
 footer{max-width:720px;margin:0 auto;padding:0 16px 40px;font-size:12px;color:var(--sub);line-height:1.7}</style></head><body>
@@ -284,21 +286,30 @@ function leaflet(){            // 지도 라이브러리는 지도가 필요할 
   return leafletP=leafletP||new Promise((ok,no)=>{const c=document.createElement('link');c.rel='stylesheet';c.href='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';document.head.append(c);
     const j=document.createElement('script');j.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';j.onload=ok;j.onerror=no;document.head.append(j)})}
 const MAPC=['#1e2d50','#e8590c','#2f9e6a','#7c5cd6','#dc4a63','#0f8b9c'];
+function labels(){             // 상호 라벨: 17 이상 확대했을 때, 다른 라벨과 겹치는 것은 숨긴다
+  const on=MAP.getZoom()>=17;$('#map').classList.toggle('showlab',on);if(!on)return;
+  const box=$('#map').getBoundingClientRect(),kept=[];   // ponytail: 단순 겹침 검사 O(n²) — 동 하나(수백 곳)라 충분, 수천 곳이면 격자로
+  document.querySelectorAll('#map .mlab').forEach(el=>{el.style.visibility='';const r=el.getBoundingClientRect();
+    const hit=r.right<box.left||r.left>box.right||r.bottom<box.top||r.top>box.bottom||kept.some(k=>r.left<k.right&&r.right>k.left&&r.top<k.bottom&&r.bottom>k.top);
+    if(hit)el.style.visibility='hidden';else kept.push(r)})}
 async function drawMap(a,lc){
   const pts=a.filter(x=>x.x&&x.y);
   $('#mapCard').classList.toggle('hide',!pts.length);if(!pts.length)return;     // 좌표가 들어간 데이터부터 보인다
   try{await leaflet()}catch(e){$('#mapCard').classList.add('hide');return}
   const LF=window.L;                              // 페이지에 인허가 목록 변수 L이 따로 있어 Leaflet은 window.L로 부른다
   if(!MAP){MAP=LF.map('map',{preferCanvas:true,scrollWheelZoom:false});
-    LF.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(MAP)}
+    LF.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; OpenStreetMap'}).addTo(MAP);
+    MAP.on('zoomend moveend',labels)}
   if(LAYER)LAYER.remove();
   const top=count(pts,x=>x.indsMclsNm).slice(0,5).map(t=>t[0]),col=m=>top.includes(m)?MAPC[top.indexOf(m)]:'#9aa3b5';
   LAYER=LF.layerGroup(pts.map(x=>LF.circleMarker([x.y,x.x],{radius:5,weight:1,color:'#fff',fillColor:col(x.indsMclsNm),fillOpacity:.85})
+    .bindTooltip(esc(x.bizesNm)+(x.brchNm?' '+esc(x.brchNm):''),{permanent:true,direction:'right',offset:[6,0],className:'mlab'})
     .bindPopup(`<b>${esc(x.bizesNm)} ${esc(x.brchNm||'')}</b><br>${esc(x.indsSclsNm)}<br><span style="color:#6b7488">${esc(x.rdnmAdr)}${x.flrNo?' '+esc(x.flrNo)+'층':''}</span>`))).addTo(MAP);
   MAP.fitBounds(LF.latLngBounds(pts.map(x=>[x.y,x.x])).pad(.08));setTimeout(()=>MAP.invalidateSize(),50);
   $('#mapTitle').textContent=`${D.adong} · ${lc} 점포 지도`;
   $('#mapLegend').innerHTML=top.map(m=>`<span style="margin-right:10px;white-space:nowrap"><i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${col(m)};margin-right:4px"></i>${esc(m)}</span>`).join('')+`<span style="white-space:nowrap"><i style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#9aa3b5;margin-right:4px"></i>그 밖</span>`;
-  $('#mapNote').textContent=`점을 누르면 상호·주소가 보입니다. ${pts.length.toLocaleString()}곳 · 위치는 소상공인시장진흥공단 상가(상권)정보 좌표 기준이라 실제와 조금 다를 수 있습니다. 지도 © OpenStreetMap 기여자.`;
+  labels();
+  $('#mapNote').textContent=`지도를 확대하면 상호가 표시되고, 점을 누르면 업종·주소가 보입니다. ${pts.length.toLocaleString()}곳 · 위치는 소상공인시장진흥공단 상가(상권)정보 좌표 기준이라 실제와 조금 다를 수 있습니다. 지도 © OpenStreetMap 기여자.`;
 }
 function drawStores(){
   const lc=$('#lcls').value,a=S.filter(x=>x.indsLclsNm===lc);drawMap(a,lc);
