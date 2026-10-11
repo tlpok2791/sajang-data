@@ -299,6 +299,12 @@ def licenses(only=()):
                        for r in regions.values() for cd, g in r['signgu'].items() for a in SIDO_ALIAS.get(r['name'], [r['name']])),
                       key=lambda t: -len(t[0]))
     status, summary = {}, []
+    prev = CACHE / 'lic_status.json'
+    if only and prev.exists():                          # 일부 업종만 다시 집계할 때 나머지 업종 결과는 그대로 둔다
+        old = json.loads(prev.read_text(encoding='utf-8'))
+        labels = {LICENSE_SVC[s] for s in only if s in LICENSE_SVC}
+        status = {k: v for k, v in old['status'].items() if k not in only}
+        summary = [r for r in old['summary'] if r['업종'] not in labels]
     for svc, label in LICENSE_SVC.items():
         if only and svc not in only:
             continue
