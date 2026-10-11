@@ -157,11 +157,44 @@ def stores(zip_path):
 
 
 # ── 인허가: 전국 API → 시군구·법정동별 JSON ─────────────────────────
+BIG = 1_000_000      # 이보다 큰 업종은 깊은 쪽(예: 15,000쪽)이 60초 넘겨 504 → 지자체(개방자치단체코드)별로 나눠 받는다 (2026-10-11 일반음식점·통신판매업)
+BY_CODE = 'cond[OPN_ATMY_GRP_CD::EQ]'
+
+
+def atmy_codes():
+    """개방자치단체코드 목록. 약국 전체(작아서 빠름)에서 모은다 — 큰 업종은 아래 합계 대조로 빠진 코드를 잡는다."""
+    f = CACHE / 'atmy_codes.json'
+    if not f.exists():
+        def pg(p):
+            b = get(LOCAL.format('pharmacies'), pageNo=p, numOfRows=100, returnType='json')['response']['body']
+            return {x['OPN_ATMY_GRP_CD'] for x in (b['items']['item'] if b['totalCount'] else [])}
+        total = get(LOCAL.format('pharmacies'), pageNo=1, numOfRows=1, returnType='json')['response']['body']['totalCount']
+        with ThreadPoolExecutor(8) as ex:
+            dump(f, sorted(set().union(*ex.map(pg, range(1, total // 100 + 2)))))
+    return json.loads(f.read_text(encoding='utf-8'))
+
+
+def pages_of(svc, total):
+    """받을 쪽 목록: 작은 업종은 쪽 번호, 큰 업종은 (지자체코드, 쪽)."""
+    if total <= BIG:
+        return list(range(1, total // 100 + 2))
+    codes = atmy_codes()
+    cnt = lambda c: get(LOCAL.format(svc), pageNo=1, numOfRows=1, returnType='json', **{BY_CODE: c})['response']['body']['totalCount']
+    with ThreadPoolExecutor(8) as ex:
+        per = dict(zip(codes, ex.map(cnt, codes)))
+    if sum(per.values()) != total:                   # 지자체 코드가 새로 생기면 여기서 걸린다 → .cache/atmy_codes.json 지우고 다시
+        raise RuntimeError(f'{svc} 지자체별 합 {sum(per.values()):,} ≠ 전국 {total:,}')
+    for f in (LCACHE / MONTH / svc).glob('?????.json'):  # 예전 방식(전국 쪽 번호)으로 받은 것과 섞이면 중복 집계
+        f.unlink()
+    return [(c, p) for c, n in per.items() for p in range(1, n // 100 + 2)]
+
+
 def lic_page(svc, page):
-    p = LCACHE / MONTH / svc / f'{page:05d}.json'
+    code, page = page if isinstance(page, tuple) else (None, page)
+    p = LCACHE / MONTH / svc / (f'{code}_{page:04d}.json' if code else f'{page:05d}.json')
     if p.exists():
         return
-    b = get(LOCAL.format(svc), pageNo=page, numOfRows=100, returnType='json')['response']['body']
+    b = get(LOCAL.format(svc), pageNo=page, numOfRows=100, returnType='json', **({BY_CODE: code} if code else {}))['response']['body']
     items = b['items']['item'] if b['totalCount'] else []
     dump(p, [{'name': x['BPLC_NM'], 'bz': x.get('SNTTN_BZSTAT_NM') or x.get('NTSL_MTH_NM') or x.get('BZSTAT_SE_NM') or '',
               'open': x['LCPMT_YMD'], 'close': x['CLSBIZ_YMD'], 'lot': x['LOTNO_ADDR'], 'road': x['ROAD_NM_ADDR']} for x in items])
@@ -252,7 +285,7 @@ def fetch_all(skip=()):
                 pass
         try:
             with ThreadPoolExecutor(4) as ex:
-                list(ex.map(safe, range(1, total // 100 + 2)))
+                list(ex.map(safe, pages_of(svc, total)))
         except QuotaExceeded:
             pass
         print(f'  {LICENSE_SVC[svc]} 내려받기 끝', flush=True)
@@ -274,7 +307,7 @@ def licenses(only=()):
         except NotRegistered:
             status[svc] = '활용신청 필요'
             continue
-        pages = range(1, total // 100 + 2)
+        pages = pages_of(svc, total)
         def safe(p):                                    # 한 쪽이 계속 실패해도 전체를 멈추지 않는다 → 다음 실행 때 다시 받음
             try:
                 lic_page(svc, p)
